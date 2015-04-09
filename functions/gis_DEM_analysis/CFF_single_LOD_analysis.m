@@ -1,9 +1,9 @@
-function CFF_single_LOD_analysis(Z1_file,Z2_file,polygon,varargin)
-% CFF_single_LOD_analysis(Z1_file,Z2_file,polygon,varargin)
+function volumes = CFF_single_LOD_analysis(DEM1,DEM2,polygon,uncertainty,factors,display_flag)
+% volumes = CFF_single_LOD_analysis(DEM1,DEM2,polygon,uncertainty,factors,display_flag)
 %
 % DESCRIPTION
 %
-% use as template for a new function
+% compute DOD volumes using Limit of Detection analysis.
 %
 % USE
 %
@@ -11,17 +11,21 @@ function CFF_single_LOD_analysis(Z1_file,Z2_file,polygon,varargin)
 %
 % PROCESSING SUMMARY
 %
-% - ...
-% - ...
-% - ...
-%
 % INPUT VARIABLES
 %
-% - varagin
+% - Z1, Z2: input DSMs. Can be file names to be loaded or data as, cells,
+% structures or 3D arrays. See CFF_load_raster for more info.
+% - polygon: vertices of the polygon to constrain the analysis to. If empty
+% (polygon = []), the whole DSMs are used.
+% - uncertainty: single value to be used or a cell of two DEMs as Z1 and Z2
+% - factors: the factors of uncertainty to be used as LOD in volume
+% calculations. Possible to use 0 to prevent use of LOD and use all data
+% instead. Use 1 to use the uncertainty value as LOD. Use vectors (eg
+% [0:0.1:3] to produce multi LOD analysis
 %
 % OUTPUT VARIABLES
 %
-% - NA
+% - volumes
 %
 % RESEARCH NOTES
 %
@@ -29,8 +33,7 @@ function CFF_single_LOD_analysis(Z1_file,Z2_file,polygon,varargin)
 %
 % NEW FEATURES
 %
-% YYYY-MM-DD: second version.
-% YYYY-MM-DD: first version.
+% 2015-03-10: first version.
 %
 % EXAMPLE
 %
@@ -38,109 +41,156 @@ function CFF_single_LOD_analysis(Z1_file,Z2_file,polygon,varargin)
 % Alex Schimel, Deakin University
 %%%
 
-% get polygons vertices:
-xv = polygon(:,1);
-yv = polygon(:,2);
+% load DEM1 and DEM2
+[Z1,Z1_easting,Z1_northing] = CFF_load_raster(DEM1);
+[Z2,Z2_easting,Z2_northing] = CFF_load_raster(DEM2);
 
-tic
-% read grid tif files:
-[Z1,Z1_easting,Z1_northing] = CFF_read_tif(Z1_file);
-[Z2,Z2_easting,Z2_northing] = CFF_read_tif(Z2_file);
-
-toc
-tic
-
-% clip grids to polygon
-[Z1,Z1_easting,Z1_northing] = CFF_clip_raster(Z1,Z1_easting,Z1_northing,xv,yv);
-[Z2,Z2_easting,Z2_northing] = CFF_clip_raster(Z2,Z2_easting,Z2_northing,xv,yv);
-
-toc
-
-% create dod from grids
-[DOD,DOD_easting,DOD_northing] = CFF_calculate_DOD(Z1,Z1_easting,Z1_northing,Z2,Z2_easting,Z2_northing);
-
-if nargin>4
+% load polygon and clip DEMs to polygon
+if ~isempty(polygon)
     
-    % we have uncertainty files
-    U1_file = varargin{1};
-    U2_file = varargin{2};
+    xv = polygon(:,1);
+    yv = polygon(:,2);
     
-    % read uncertainty tif files:
-    [U1,U1_easting,U1_northing] = CFF_read_tif(U1_file,Z1_file);
-    [U2,U2_easting,U2_northing] = CFF_read_tif(U2_file,Z2_file);
-    
-    % clip uncertainty grids to polygon
-    [U1,U1_easting,U1_northing] = CFF_clip_raster(U1,U1_easting,U1_northing,xv,yv);
-    [U2,U2_easting,U2_northing] = CFF_clip_raster(U2,U2_easting,U2_northing,xv,yv);
-    
-    % create propagated uncertainty grid
-    [DPU,DPU_easting,DPU_northing] = CFF_calculate_DPU(U1,U1_easting,U1_northing,U2,U2_easting,U2_northing);
-    
-    % DOD and DPU should be co-registered, but just in case of:
-    [DOD,DPU,DOD_easting,DOD_northing] = CFF_coregister_rasters(DOD,DOD_easting,DOD_northing,DPU,DPU_easting,DPU_northing);
-    
-    % now run multi-LOD analysis
-    sigma = [0:1:30];
-    for i = 1:length(sigma)
-        
-        % we threshold at a spatially variable value, a factor of the
-        % grid std, propagated in quadrature from the individual grids.
-        uncertainty = DPU;
-        threshold = sigma(i).*DPU;
-        [v_bud(i),v_ero(i),v_dep(i),a_ero(i),a_dep(i),us_v_ero(i),us_v_dep(i),up_v_ero(i),up_v_dep(i)] = CFF_LOD_volumes(DOD,DOD_easting,DOD_northing,threshold,uncertainty);
-        
-    end
-    
-elseif nargin >3
-    
-    % we have a single uncertainty value
-    uncertainty = varargin{1};
-    
-    % now run multi-LOD analysis
-    % we threshold at a constant value, a factor of some std (reference area)
-    sigma = [0:0.1:5];
-    threshold = sigma.*uncertainty;
-    for i = 1:length(threshold)
-        [v_bud(i),v_ero(i),v_dep(i),a_ero(i),a_dep(i),us_v_ero(i),us_v_dep(i),up_v_ero(i),up_v_dep(i)] = CFF_LOD_volumes(DOD,DOD_easting,DOD_northing,threshold(i),uncertainty);
-    end
+    % clip grids to polygon
+    [Z1,Z1_easting,Z1_northing] = CFF_clip_raster(Z1,Z1_easting,Z1_northing,xv,yv);
+    [Z2,Z2_easting,Z2_northing] = CFF_clip_raster(Z2,Z2_easting,Z2_northing,xv,yv);
     
 end
 
+% co-register grids
+[Z1,Z2,X,Y] = CFF_coregister_rasters(Z1,Z1_easting,Z1_northing,Z2,Z2_easting,Z2_northing);
 
+% create dod
+DOD = CFF_calculate_DOD(Z1,Z2);
+
+% load and deal with uncertainty
+if isnumeric(uncertainty) && all(size(uncertainty))==1
+    % single, constant uncertainty value taken as the DOD uncertainty.
+    
+    % save as UNC for volume computations
+    UNC = uncertainty;
+    
+elseif iscell(uncertainty) && max(size(uncertainty))==2
+    % cell array of two things. To be loaded as rasters and combined as DPU
+    
+    % load
+    [U1,U1_easting,U1_northing] = CFF_load_raster(uncertainty{1});
+    [U2,U2_easting,U2_northing] = CFF_load_raster(uncertainty{2});
+    
+    % clip to polygon
+    if ~isempty(polygon)
+        
+        xv = polygon(:,1);
+        yv = polygon(:,2);
+        
+        % clip grids to polygon
+        [U1,U1_easting,U1_northing] = CFF_clip_raster(U1,U1_easting,U1_northing,xv,yv);
+        [U2,U2_easting,U2_northing] = CFF_clip_raster(U2,U2_easting,U2_northing,xv,yv);
+        
+    end
+    
+    % co-register grids
+    [U1,U2,UX,UY] = CFF_coregister_rasters(U1,U1_easting,U1_northing,U2,U2_easting,U2_northing);
+    
+    % compute DPU
+    DPU = CFF_calculate_DPU(U1,U2);
+    
+    % coregister DOD and DPU
+    [DOD,DPU,X,Y] = CFF_coregister_rasters(DOD,X,Y,DPU,UX,UY);
+    
+    % save as UNC for volume computations
+    UNC = DPU;
+    
+end
+
+% get Limit of Detection from uncertainty and input factor and calculate
+% volumes for all LoDs.
+clear volumes
+for i = 1:length(factors)
+    LOD = factors(i).*UNC;
+    volumes(i) = CFF_LOD_volumes(DOD,X,Y,LOD,UNC);
+end
 
 % display
-figure;
-
-plot(threshold,v_dep,'Color',[0.4 0.4 0.4],'LineWidth',2)
-hold on
-plot(threshold,v_bud,'Color',[0 0 0],'LineWidth',2)
-plot(threshold,v_ero,'Color',[0.7 0.7 0.7],'LineWidth',2)
-legend('deposition','net','erosion')
-
-% erosion uncertainty
-plot(threshold,v_ero-us_v_ero,'--','Color',[0.7 0.7 0.7],'LineWidth',2)
-us_v_ero(v_ero+us_v_ero > 0) = NaN;
-plot(threshold,v_ero+us_v_ero,'--','Color',[0.7 0.7 0.7],'LineWidth',2)
-
-% deposition uncertainty
-plot(threshold,v_dep+us_v_dep,'--','Color',[0.4 0.4 0.4],'LineWidth',2)
-us_v_dep(v_dep-us_v_dep < 0) = NaN;
-plot(threshold,v_dep-us_v_dep,'--','Color',[0.4 0.4 0.4],'LineWidth',2)
-
-% value at uncertainty level
-vmax = max([max(abs(v_ero-us_v_ero)), max(abs(v_dep+us_v_dep))]);
-stem([uncertainty,uncertainty],[-vmax,vmax],'k.','LineWidth',2)
-
-grid on
-xlabel('threshold (m)')
-ylabel('erosion (m^3)                     deposition (m^3)')
-title(['Volumes above threshold'])
-ylim([-vmax vmax])
-
-set(gcf, 'PaperPositionMode', 'manual');
-set(gcf, 'PaperUnits', 'centimeters');
-set(gcf, 'PaperPosition', [0.25 0.25 30 20]);
-CFF_nice_easting_northing(5)
-print('-dpng','-r600','volumeAboveThreshold.png')
+if display_flag>0
+    
+    volumeNetChange = [volumes(:).volumeNetChange];
+    volumeEroded = [volumes(:).volumeEroded];
+    volumeDeposited = [volumes(:).volumeDeposited];
+    uncertaintyVolumeEroded_sum = [volumes(:).uncertaintyVolumeEroded_sum];
+    uncertaintyVolumeDeposited_sum = [volumes(:).uncertaintyVolumeDeposited_sum];
+    uncertaintyVolumeEroded_propagated = [volumes(:).uncertaintyVolumeEroded_propagated];
+    uncertaintyVolumeDeposited_propagated = [volumes(:).uncertaintyVolumeDeposited_propagated];
+    areaEroded = [volumes(:).areaEroded];
+    areaDeposited = [volumes(:).areaDeposited];
+    areaTotalChange = [volumes(:).areaTotalChange];
+    areaTotal = [volumes(:).areaTotal];
+    
+    LOD = factors.*UNC;
+    
+    figure;
+    
+    plot(LOD, volumeDeposited, 'Color',[0.4 0.4 0.4],'LineWidth',2)
+    hold on
+    %plot(LOD, volumeNetChange, 'Color',[0 0 0],'LineWidth',2)
+    plot(LOD, volumeEroded,    'Color',[0.7 0.7 0.7],'LineWidth',2)
+    legend('deposition','erosion')
+    
+    % erosion uncertainty
+    plot(LOD, volumeEroded - uncertaintyVolumeEroded_sum,'--','Color',[0.7 0.7 0.7],'LineWidth',2)
+    uncertaintyVolumeEroded_sum(volumeEroded + uncertaintyVolumeEroded_sum > 0) = NaN;
+    plot(LOD, volumeEroded + uncertaintyVolumeEroded_sum,'--','Color',[0.7 0.7 0.7],'LineWidth',2)
+    
+    % deposition uncertainty
+    plot(LOD,volumeDeposited + uncertaintyVolumeDeposited_sum,'--','Color',[0.4 0.4 0.4],'LineWidth',2)
+    uncertaintyVolumeDeposited_sum(volumeDeposited - uncertaintyVolumeDeposited_sum < 0) = NaN;
+    plot(LOD,volumeDeposited - uncertaintyVolumeDeposited_sum,'--','Color',[0.4 0.4 0.4],'LineWidth',2)
+    
+    % value at uncertainty level
+    vmax = max([max(abs(volumeEroded-uncertaintyVolumeEroded_sum)), max(abs(volumeDeposited+uncertaintyVolumeDeposited_sum))]);
+    stem([uncertainty,uncertainty],[-vmax,vmax],'k.','LineWidth',2)
+    
+    grid on
+    xlabel('limit of detection (m)')
+    ylabel('erosion (m^3)                     deposition (m^3)')
+    title(['Volumes above threshold'])
+    ylim([-vmax vmax])
+    
+    if display_flag>1
+        set(gcf, 'PaperPositionMode', 'manual');
+        set(gcf, 'PaperUnits', 'centimeters');
+        set(gcf, 'PaperPosition', [0.25 0.25 30 20]);
+        print('-dpng','-r600','volumeAboveLOD.png')
+    end
+    
+    % now erosion and deposition separately
+    legend off
+    title('')
+    ylim([min(volumeEroded-uncertaintyVolumeEroded_sum) 0])
+    xlim([0 LOD(end)])
+    ylabel('erosion (m^3)')
+    
+    if display_flag>1
+        set(gcf, 'PaperPositionMode', 'manual');
+        set(gcf, 'PaperUnits', 'centimeters');
+        set(gcf, 'PaperPosition', [0.25 0.25 24 16]);
+        print('-dpng','-r600','erodedvolumeAboveLOD.png')
+    end
+    
+    legend off
+    title('')
+    xlabel('limit of detection (m)')
+    ylim([0 max(abs(volumeDeposited+uncertaintyVolumeDeposited_sum))])
+    xlim([0 LOD(end)])
+    ylabel('deposition (m^3)')
+    
+    if display_flag>1
+        set(gcf, 'PaperPositionMode', 'manual');
+        set(gcf, 'PaperUnits', 'centimeters');
+        set(gcf, 'PaperPosition', [0.25 0.25 24 16]);
+        print('-dpng','-r600','depositedvolumeAboveLOD.png')
+    end
+    
+end
 
 

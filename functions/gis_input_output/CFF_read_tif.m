@@ -4,8 +4,7 @@ function [M,easting,northing] = CFF_read_tif(tif_file,varargin)
 % DESCRIPTION
 %
 % read tif and tfw file. If tfw file unavailable, returns row and col
-% number. 'prec' is the number of decimal digits, to be used to overcome
-% floating point notations issues.
+% number.
 %
 % USE
 %
@@ -51,8 +50,17 @@ M = double(M);
 ims = imfinfo(tif_file);
 if isfield(ims,'GDAL_NODATA')
     % test 1: maybe tiff file has a GDAL_NODATA value
+    % code other possibilities of "no data" settings
     GDAL_NODATA = str2num(ims.GDAL_NODATA);
-    M( M == GDAL_NODATA ) = NaN;
+    % the following is dirty but I have no choice: My NODATA value in MBES
+    % tiff files is -3.402823e+38 but in the data, it is
+    % -3.4028230607371e+38 so they don't match. So I test for the presence
+    % of the exact GDAL_NODATA value for now
+    if any(M(:) == GDAL_NODATA)
+        M( M == GDAL_NODATA ) = NaN;
+    else
+        M( M == min(M(:)) ) = NaN;
+    end
 else
     % last change, use minimum value in array for NaN
     M( M == min(M(:)) ) = NaN;

@@ -39,6 +39,15 @@ function [Z1out,Z2out,Xout,Yout] = CFF_coregister_rasters(Z1,X1,Y1,Z2,X2,Y2,vara
 % Alex Schimel, Deakin University
 %%%
 
+% first thing first, if datasets are already coregistered, get out of here:
+if all(size(X1)==size(X2)) && all(all(X1==X2)) && all(all(Y1==Y2))
+    Z1out = Z1;
+    Z2out = Z2;
+    Xout = X1;
+    Yout = Y1;
+    return
+end
+    
 % get datasets resolutions:
 X1_res = CFF_get_vector_stepsize(X1(1,:));
 X2_res = CFF_get_vector_stepsize(X2(1,:));

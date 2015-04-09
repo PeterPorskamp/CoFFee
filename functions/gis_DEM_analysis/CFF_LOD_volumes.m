@@ -3,9 +3,9 @@ function out = CFF_LOD_volumes(DOD,X,Y,LOD,UNC)
 %
 % DESCRIPTION
 %
-% Calculate volumes eroded and deposited from two DEMS.
-% using two co-registered grids: a difference of DEMs (DOD) and a threshold
-% grid (LOD). ALso use uncertainty to output intervals of confidence.
+% Calculate volumes eroded and deposited from the difference between two
+% DEMS (DOD), using a threhsold or Limit Of Detection (LOD). Also use
+% uncertainty (UNC) to output intervals of confidence. 
 %
 % USE
 %

@@ -1,5 +1,5 @@
-function polygons = CFF_create_polygons_along_line(pline,interval,offset,p_length, p_width,display_flag)
-% polygons = CFF_create_polygons_along_line(pline,interval,offset,p_length, p_width,display_flag)
+function [polygons,vq] = CFF_create_polygons_along_line(pline,interval,offset,p_length, p_width,display_flag)
+% [polygons,vq] = CFF_create_polygons_along_line(pline,interval,offset,p_length, p_width,display_flag)
 %
 % DESCRIPTION
 %
@@ -24,7 +24,7 @@ function polygons = CFF_create_polygons_along_line(pline,interval,offset,p_lengt
 %
 % OUTPUT VARIABLES
 %
-% - NA
+% - vq: polygons center
 %
 % RESEARCH NOTES
 %

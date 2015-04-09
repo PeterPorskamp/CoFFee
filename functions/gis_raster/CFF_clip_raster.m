@@ -3,7 +3,9 @@ function [Z2,X2,Y2] = CFF_clip_raster(Z,X,Y,xv,yv)
 %
 % DESCRIPTION
 %
-% use as template for a new function
+% clip raster Z with coordinates X,Y to the polygon of vertices xv,yv. All
+% grid points outside the polygon are set to NaN and then remove
+% unnecessary rows and columns.
 %
 % USE
 %

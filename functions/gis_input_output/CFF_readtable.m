@@ -3,9 +3,9 @@ function T = CFF_readtable(filename)
 %
 % DESCRIPTION
 %
-% as readtable but with a catch to be able to read tables exported from
-% arcmap which might contain the delimiter  ',' within individual fields
-% indentifed with double quotes. e.g.
+% as Matlab's built-in function "readtable" but with a catch to be able to
+% read tables exported from arcmap which might contain the delimiter  ','
+% within individual fields identifed with double quotes. e.g.
 % ID,Name,Height,Quote
 % 0,'John',1.75,"normal text, with coma inside that makes readtable fail"
 %

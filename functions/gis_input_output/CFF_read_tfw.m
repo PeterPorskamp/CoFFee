@@ -3,8 +3,8 @@ function [tfw,prec] = CFF_read_tfw(tfw_file)
 %
 % DESCRIPTION
 %
-% reads the 6 values of a tfw file and also outputs maximum number of
-% decimal digits to work around float issues.
+% reads the 6 values of a tfw file. Also outputs the maximum number of
+% digits after decimal point to work around float issues. 
 %
 % USE
 %
