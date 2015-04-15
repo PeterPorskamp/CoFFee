@@ -83,7 +83,7 @@ yv = main_polygon(:,2);
 %% multiple LOD analysis on main polygon
 beachface_sigmafactor = [0:0.1:5];
 display_flag = 2;
-beachface_volumes = CFF_single_LOD_analysis({X,Y,Z1},{X,Y,Z2},[],uncertainty,beachface_sigmafactor,display_flag);
+beachface_volumes = CFF_LOD_analysis({X,Y,Z1},{X,Y,Z2},[],uncertainty,beachface_sigmafactor,'sum',display_flag);
 beachface_threshold = beachface_sigmafactor.*uncertainty;
 
 % in particular, beachface volumes for LoD = 0 and loD = uncertainty can be
@@ -95,7 +95,7 @@ beachface_volumes(11);
 factor = 1; % or 1 or 2?
 display_flag = 0;
 for ii = 1:length(analysis_polygons)
-    analysis_volumes(ii) = CFF_single_LOD_analysis({X,Y,Z1},{X,Y,Z2},analysis_polygons{ii},uncertainty,factor,display_flag);
+    analysis_volumes(ii) = CFF_LOD_analysis({X,Y,Z1},{X,Y,Z2},analysis_polygons{ii},uncertainty,factor,'sum',display_flag);
 end
 
 %% figure for volume eroded per m of beach

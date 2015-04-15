@@ -109,20 +109,38 @@ if display_flag>0
         
         % draw on that figure for each DEM
         for ii = 1:nDEMs
-            plot( transect(ii,jj).distwanted - transect(ii,jj).mindist , transect(ii,jj).zq , 'LineWidth', 1.5, 'LineStyle','-' );
+            p{ii} = plot( transect(ii,jj).distwanted - transect(ii,jj).mindist , transect(ii,jj).zq );
             hold on
         end
-             
+        
+        % line settings for four time series, in grey scale
+        if nDEMs==4
+            p{1}.Color = [0.8 0.8 0.8];
+            p{2}.Color = [0.59 0.59 0.59];
+            p{3}.Color = [0.32 0.32 0.32];
+            p{4}.Color = [0 0 0];
+            p{1}.LineWidth = 1.5;
+            p{2}.LineWidth = 1.5;
+            p{3}.LineWidth = 1.5;
+            p{4}.LineWidth = 1.5;
+            p{1}.LineStyle = '-';
+            p{2}.LineStyle = '--';
+            p{3}.LineStyle = '-';
+            p{4}.LineStyle = '--';
+        end
+ 
         grid on
         xlabel('distance from western edge of transect (m)')
         ylabel('Height (m)')
-        legend
+        axis tight
+        legend('show')
         
         if display_flag>1
             set(gcf, 'PaperPositionMode', 'manual');
             set(gcf, 'PaperUnits', 'centimeters');
-            set(gcf, 'PaperPosition', [0.25 0.25 9 7]);
-            print -dpng -r1000 reef.png
+            set(gcf, 'PaperPosition', [0.25 0.25 40 10]);
+            CFF_nice_easting_northing(5)
+            print('-dpng','-r600','transect.png')
         end
         
     end

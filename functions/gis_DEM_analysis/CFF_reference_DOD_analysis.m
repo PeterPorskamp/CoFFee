@@ -1,5 +1,5 @@
-function [DODmean,DODstd,DOD,X,Y] = CFF_reference_DOD_analysis(DEM1,DEM2,polygon,display_flag)
-% [DODmean,DODstd,DOD,X,Y] = CFF_reference_DOD_analysis(DEM1,DEM2,polygon)
+function [DODmean,DODstd,DOD,X,Y,DODsixheightperc] = CFF_reference_DOD_analysis(DEM1,DEM2,polygon,display_flag)
+% [DODmean,DODstd,DOD,X,Y,DODsixheightperc] = CFF_reference_DOD_analysis(DEM1,DEM2,polygon)
 %
 % DESCRIPTION
 %
@@ -63,6 +63,13 @@ DOD = CFF_calculate_DOD(Z1,Z2);
 
 % get mean and standard deviation of DOD over reference area
 [DODmean,DODstd] = CFF_nanstat3(DOD(:),1);
+
+% std is a good estimate of deviation around the mean, corresponding to
+% 68.2% of the population being between -1 sigma and +1sigma. But if the
+% population is heavily skewed, the standard deviation is much larger than
+% that. Use the invpercentile function to get a better estimate of
+% deviation. In our DOD, 68.2% of the population is contains within +- of:
+DODsixheightperc = CFF_invpercentile(abs(DOD(:)),68);
 
 % display and print
 if display_flag>0

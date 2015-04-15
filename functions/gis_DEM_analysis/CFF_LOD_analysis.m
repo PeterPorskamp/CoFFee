@@ -1,5 +1,5 @@
-function volumes = CFF_single_LOD_analysis(DEM1,DEM2,polygon,uncertainty,factors,display_flag)
-% volumes = CFF_single_LOD_analysis(DEM1,DEM2,polygon,uncertainty,factors,display_flag)
+function volumes = CFF_LOD_analysis(DEM1,DEM2,polygon,uncertainty,factors,volume_uncertainty_method,display_flag)
+% volumes = CFF_LOD_analysis(DEM1,DEM2,polygon,uncertainty,factors,volume_uncertainty_method,display_flag)
 %
 % DESCRIPTION
 %
@@ -74,8 +74,8 @@ elseif iscell(uncertainty) && max(size(uncertainty))==2
     % cell array of two things. To be loaded as rasters and combined as DPU
     
     % load
-    [U1,U1_easting,U1_northing] = CFF_load_raster(uncertainty{1});
-    [U2,U2_easting,U2_northing] = CFF_load_raster(uncertainty{2});
+    [U1,U1_easting,U1_northing] = CFF_read_tif(uncertainty{1},DEM1);
+    [U2,U2_easting,U2_northing] = CFF_read_tif(uncertainty{2},DEM2);
     
     % clip to polygon
     if ~isempty(polygon)
@@ -117,79 +117,101 @@ if display_flag>0
     volumeNetChange = [volumes(:).volumeNetChange];
     volumeEroded = [volumes(:).volumeEroded];
     volumeDeposited = [volumes(:).volumeDeposited];
-    uncertaintyVolumeEroded_sum = [volumes(:).uncertaintyVolumeEroded_sum];
-    uncertaintyVolumeDeposited_sum = [volumes(:).uncertaintyVolumeDeposited_sum];
-    uncertaintyVolumeEroded_propagated = [volumes(:).uncertaintyVolumeEroded_propagated];
-    uncertaintyVolumeDeposited_propagated = [volumes(:).uncertaintyVolumeDeposited_propagated];
+    
+    switch volume_uncertainty_method
+        case 'sum'
+            % choose uncertainty as sum:
+            uncertaintyVolumeEroded = [volumes(:).uncertaintyVolumeEroded_sum];
+            uncertaintyVolumeDeposited = [volumes(:).uncertaintyVolumeDeposited_sum];
+        case 'propagated'
+            % or propagated:
+            uncertaintyVolumeEroded = [volumes(:).uncertaintyVolumeEroded_propagated];
+            uncertaintyVolumeDeposited = [volumes(:).uncertaintyVolumeDeposited_propagated];     
+    end
+    
     areaEroded = [volumes(:).areaEroded];
     areaDeposited = [volumes(:).areaDeposited];
     areaTotalChange = [volumes(:).areaTotalChange];
     areaTotal = [volumes(:).areaTotal];
     
-    LOD = factors.*UNC;
-    
     figure;
     
-    plot(LOD, volumeDeposited, 'Color',[0.4 0.4 0.4],'LineWidth',2)
+    plot(factors, volumeDeposited, 'Color',[0.4 0.4 0.4],'LineWidth',2)
     hold on
-    %plot(LOD, volumeNetChange, 'Color',[0 0 0],'LineWidth',2)
-    plot(LOD, volumeEroded,    'Color',[0.7 0.7 0.7],'LineWidth',2)
+    %plot(factors, volumeNetChange, 'Color',[0 0 0],'LineWidth',2)
+    plot(factors, volumeEroded,    'Color',[0.7 0.7 0.7],'LineWidth',2)
     legend('deposition','erosion')
+    %legend('deposition','net','erosion')
     
     % erosion uncertainty
-    plot(LOD, volumeEroded - uncertaintyVolumeEroded_sum,'--','Color',[0.7 0.7 0.7],'LineWidth',2)
-    uncertaintyVolumeEroded_sum(volumeEroded + uncertaintyVolumeEroded_sum > 0) = NaN;
-    plot(LOD, volumeEroded + uncertaintyVolumeEroded_sum,'--','Color',[0.7 0.7 0.7],'LineWidth',2)
+    plot(factors, volumeEroded - uncertaintyVolumeEroded,'--','Color',[0.7 0.7 0.7],'LineWidth',2)
+    uncertaintyVolumeEroded(volumeEroded + uncertaintyVolumeEroded > 0) = NaN;
+    plot(factors, volumeEroded + uncertaintyVolumeEroded,'--','Color',[0.7 0.7 0.7],'LineWidth',2)
     
     % deposition uncertainty
-    plot(LOD,volumeDeposited + uncertaintyVolumeDeposited_sum,'--','Color',[0.4 0.4 0.4],'LineWidth',2)
-    uncertaintyVolumeDeposited_sum(volumeDeposited - uncertaintyVolumeDeposited_sum < 0) = NaN;
-    plot(LOD,volumeDeposited - uncertaintyVolumeDeposited_sum,'--','Color',[0.4 0.4 0.4],'LineWidth',2)
+    plot(factors,volumeDeposited + uncertaintyVolumeDeposited,'--','Color',[0.4 0.4 0.4],'LineWidth',2)
+    uncertaintyVolumeDeposited(volumeDeposited - uncertaintyVolumeDeposited < 0) = NaN;
+    plot(factors,volumeDeposited - uncertaintyVolumeDeposited,'--','Color',[0.4 0.4 0.4],'LineWidth',2)
     
-    % value at uncertainty level
-    vmax = max([max(abs(volumeEroded-uncertaintyVolumeEroded_sum)), max(abs(volumeDeposited+uncertaintyVolumeDeposited_sum))]);
-    stem([uncertainty,uncertainty],[-vmax,vmax],'k.','LineWidth',2)
+    % max value + uncertainty
+    vmax = max([max(abs(volumeEroded-uncertaintyVolumeEroded)), max(abs(volumeDeposited+uncertaintyVolumeDeposited))]);
     
+    % plot the value at k=1?
+    stem([1,1],[-vmax,vmax],'k.','LineWidth',2)
+    stem([1.96,1.96],[-vmax,vmax],'k.','LineWidth',2)
+
     grid on
-    xlabel('limit of detection (m)')
+    xlabel('threshold factor k')
     ylabel('erosion (m^3)                     deposition (m^3)')
     title(['Volumes above threshold'])
     ylim([-vmax vmax])
+    xlim([min(factors) max(factors)])
     
     if display_flag>1
         set(gcf, 'PaperPositionMode', 'manual');
         set(gcf, 'PaperUnits', 'centimeters');
         set(gcf, 'PaperPosition', [0.25 0.25 30 20]);
+        CFF_nice_easting_northing(5)
         print('-dpng','-r600','volumeAboveLOD.png')
     end
     
     % now erosion and deposition separately
     legend off
     title('')
-    ylim([min(volumeEroded-uncertaintyVolumeEroded_sum) 0])
-    xlim([0 LOD(end)])
+    ylim([min(volumeEroded-uncertaintyVolumeEroded) 0])
+    xlim([0 factors(end)])
     ylabel('erosion (m^3)')
     
     if display_flag>1
         set(gcf, 'PaperPositionMode', 'manual');
         set(gcf, 'PaperUnits', 'centimeters');
         set(gcf, 'PaperPosition', [0.25 0.25 24 16]);
+        CFF_nice_easting_northing(5)
         print('-dpng','-r600','erodedvolumeAboveLOD.png')
     end
     
     legend off
     title('')
-    xlabel('limit of detection (m)')
-    ylim([0 max(abs(volumeDeposited+uncertaintyVolumeDeposited_sum))])
-    xlim([0 LOD(end)])
+    ylim([0 max(abs(volumeDeposited+uncertaintyVolumeDeposited))])
+    xlim([0 factors(end)])
     ylabel('deposition (m^3)')
     
     if display_flag>1
         set(gcf, 'PaperPositionMode', 'manual');
         set(gcf, 'PaperUnits', 'centimeters');
         set(gcf, 'PaperPosition', [0.25 0.25 24 16]);
+        CFF_nice_easting_northing(5)
         print('-dpng','-r600','depositedvolumeAboveLOD.png')
     end
+    
+    % and back to nromal display
+    grid on
+    xlabel('threshold factor k')
+    ylabel('erosion (m^3)                     deposition (m^3)')
+    title(['Volumes above threshold'])
+    ylim([-vmax vmax])
+    xlim([min(factors) max(factors)])
+    legend('deposition','erosion')
     
 end
 
