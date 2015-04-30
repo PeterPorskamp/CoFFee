@@ -41,7 +41,7 @@ else
     precision = 10; %default
 end
 
-% get ticks
+% get current ticks position
 ytick=get(gca,'ytick');
 xtick=get(gca,'xtick');
 
@@ -52,5 +52,11 @@ xtickstr=num2str(xtick',precision);
 % update strings
 set(gca,'yticklabel',ytickstr);
 set(gca,'xticklabel',xtickstr);
+
+% and prevent matlab from changing these upon print command
+set(gca,'XTickMode','manual')
+set(gca,'YTickMode','manual')
+set(gca,'XTickLabelMode','manual')
+set(gca,'YTickLabelMode','manual')
 
 

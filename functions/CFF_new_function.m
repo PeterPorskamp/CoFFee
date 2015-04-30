@@ -3,7 +3,7 @@ function CFF_new_function(varargin)
 %
 % DESCRIPTION
 %
-% use as template for a new function
+% new function
 %
 % USE
 %
