@@ -1,5 +1,5 @@
-function [DODmean,DODstd,DOD,X,Y,DODsixheightperc] = CFF_reference_DOD_analysis(DEM1,DEM2,polygon,display_flag)
-% [DODmean,DODstd,DOD,X,Y,DODsixheightperc] = CFF_reference_DOD_analysis(DEM1,DEM2,polygon)
+function [DODmean,DODstd,DOD,X,Y,DODsixheightperc,DODmin,DODmax] = CFF_reference_DOD_analysis(DEM1,DEM2,polygon,display_flag)
+% [DODmean,DODstd,DOD,X,Y,DODsixheightperc,DODmin,DODmax] = CFF_reference_DOD_analysis(DEM1,DEM2,polygon)
 %
 % DESCRIPTION
 %
@@ -70,6 +70,10 @@ DOD = CFF_calculate_DOD(Z1,Z2);
 % that. Use the invpercentile function to get a better estimate of
 % deviation. In our DOD, 68.2% of the population is contains within +- of:
 DODsixheightperc = CFF_invpercentile(abs(DOD(:)),68);
+
+DODmin = min(DOD(:));
+DODmax = max(DOD(:));
+
 
 % display and print
 if display_flag>0
