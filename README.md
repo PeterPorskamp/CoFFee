@@ -1,5 +1,5 @@
 # CoFFee
-## Multibeam Sonar data processing toolbox in Matlab
+## Alex's Matlab tools
 
 in progress..
 
