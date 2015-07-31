@@ -51,6 +51,9 @@ if ischar(IN) && exist(IN,'file')
     if strcmp(ext,'.tif') || strcmp(ext,'.tiff')
         % IN is a tif file to be loaded
         [Z,X,Y] = CFF_read_tif(IN);
+    elseif strcmp(ext,'.asc')
+        % IN is an asc file to be loaded
+        [Z,X,Y] = CFF_read_asc(IN);
     end
 elseif isstruct(IN)
     if isfield(IN,'X') && isfield(IN,'Y') && isfield(IN,'Z')

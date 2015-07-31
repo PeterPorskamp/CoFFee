@@ -74,8 +74,8 @@ elseif iscell(uncertainty) && max(size(uncertainty))==2
     % cell array of two things. To be loaded as rasters and combined as DPU
     
     % load
-    [U1,U1_easting,U1_northing] = CFF_read_tif(uncertainty{1},DEM1);
-    [U2,U2_easting,U2_northing] = CFF_read_tif(uncertainty{2},DEM2);
+    [U1,U1_easting,U1_northing] = CFF_load_raster(uncertainty{1});
+    [U2,U2_easting,U2_northing] = CFF_load_raster(uncertainty{2});
     
     % clip to polygon
     if ~isempty(polygon)

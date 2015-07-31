@@ -1,5 +1,5 @@
 function CFF_write_tif(MAP,X,Y,filename)
-% CFF_write_tif(varargin)
+% CFF_write_tif(MAP,X,Y,filename)
 %
 % DESCRIPTION
 %

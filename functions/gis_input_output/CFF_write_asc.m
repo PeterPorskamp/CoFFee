@@ -37,7 +37,11 @@ function CFF_write_asc(MAP,X,Y,filename)
 % Alex Schimel, Deakin University
 %%%
 
-
+[pathstr,name,ext] = fileparts(filename);
+if isempty(ext)
+    filename = [filename, '.asc'];
+end
+    
 % set no data to a different value
 nod = round(max(max(MAP))+2);
 MAP(isnan(MAP)) = nod;
@@ -58,7 +62,7 @@ dlmwrite('temp.txt', MAP, 'delimiter', ' ');
 
 % read temporary file as binary, and rewrite with header
 fid = fopen('temp.txt'); F = fread(fid); fclose(fid);
-fid = fopen([filename '.asc'],'w');
+fid = fopen(filename,'w');
 fwrite(fid, Header); fwrite(fid, F); fclose(fid);
 clear F
 delete('temp.txt');
