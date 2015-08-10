@@ -3,8 +3,8 @@ function DODstats = CFF_DOD_analysis(DEM1,DEM2,polygon,stats_flag,display_flag)
 %
 % DESCRIPTION
 %
-% Read DEM files DEM1 and DEM2 (tiff format), clip them to polygon,
-% compute DOD, calculate stats (if flagged), display DOD (if flagged)
+% Read DEMs 1 and 2, clip them to polygon, compute DOD, calculate stats (if
+% flagged), display DOD (if flagged).
 %
 % USE
 %
@@ -30,10 +30,11 @@ function DODstats = CFF_DOD_analysis(DEM1,DEM2,polygon,stats_flag,display_flag)
 %
 % NEW FEATURES
 %
-% YYYY-MM-DD: second version.
-% YYYY-MM-DD: first version.
+% 2015-08-10: first time tag.
 %
 % EXAMPLE
+%
+% ...
 %
 %%%
 % Alex Schimel, Deakin University
