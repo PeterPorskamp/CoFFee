@@ -16,10 +16,11 @@ nBeams = size(fData.WC_PBS_SampleAmplitudes,2);
 nSamples = size(fData.WC_PBS_SampleAmplitudes,3);
 
 
+
 switch method
     
+    %% per ping basis. In development....
     case 0
-        % per ping basis. In development....
         
         for ii = 1:nPings
             
@@ -129,7 +130,15 @@ switch method
             
         end
         
+        %% per slice
     case 1
+        
+        % parameters:
+        res = 0.1;  % grid resolution (in m) in the gridding of water column data
+        V = -70; % BS level threshold for a local maxima to be considered a man
+        thresh = 2; % distance thershold (in grid units) for two men to be considered in a same commapny
+        N = 5;     % minimum length of company to be considered kelp
+        
         
         %         % all samples too close to sonar head, at outer beams, or under the
         %         % bottom were removed during filtering. Now complete by removing
@@ -157,30 +166,30 @@ switch method
         % for now, stay with L1, ie all data
         
         % step 1. grid water column data
-        res = 0.1; % grid resolution: 10cm
         Lfield = 'X_PBS_L1'; % L2?
         [gridEasting,gridNorthing,gridHeight,gridLevel,gridDensity] = CFF_grid_watercolumn(fData,Lfield,res);
         
-        %         % display the gridded data only:
-        %         HH = figure;
-        %         caxismin = min(gridLevel(:));
-        %         caxismax = max(gridLevel(:));
-        %         for kk=1:length(gridHeight)-1
-        %             cla
-        %             xy = gridLevel(:,:,kk);
-        %             h = imagesc(xy);
-        %             %set(h,'alphadata',~isnan(xy))
-        %             set(gca,'Ydir','normal')
-        %             colorbar
-        %             title(sprintf('slice %i/%i: %.2f m',kk,length(gridHeight)-1,gridHeight(kk)))
-        %             caxis([caxismin caxismax])
-        %             grid on
-        %             axis square
-        %             axis equal
-        %             axis tight
-        %             drawnow
-        %         end
         
+        %                 % display the gridded data only:
+        %                 HH = figure;
+        %                 caxismin = min(gridLevel(:));
+        %                 caxismax = max(gridLevel(:));
+        %                 for kk=1:length(gridHeight)-1
+        %                     cla
+        %                     xy = gridLevel(:,:,kk);
+        %                     h = imagesc(xy);
+        %                     %set(h,'alphadata',~isnan(xy))
+        %                     set(gca,'Ydir','normal')
+        %                     colorbar
+        %                     title(sprintf('slice %i/%i: %.2f m',kk,length(gridHeight)-1,gridHeight(kk)))
+        %                     caxis([caxismin caxismax])
+        %                     grid on
+        %                     axis square
+        %                     axis equal
+        %                     axis tight
+        %                     drawnow
+        %                 end
+        %
         % % other quick display:
         % for ii = 50:120
         %     imagesc(exp(gridLevel(:,:,ii)./20))
@@ -194,7 +203,7 @@ switch method
         % step 2. detect the local maxima above a threshold ("men", after backgammon)
         
         % define the threshold for detection
-        V = -20; % fixed value? Setup as parameter in the function later on
+        
         % V = CFF_invpercentile(gridLevel,99); % 99th percentile in the data? fix the percentile as parameter?
         
         % initialize detect points. 4 columns table:
@@ -269,71 +278,164 @@ switch method
         
         % Add a column for "company", ie links of men across severall floor levels.
         % Each man its own company to start with.
+        % 1. Index in gridNorthing
+        % 2. Index in gridEasting
+        % 3. Index in gridHeight
+        % 4. Level
+        % 5. company
         men(:,5) = [1:size(men,1)]';
         
         % now grow companies
-        %minkk = min(men(:,3));
-        %maxkk = max(men(:,3))-1;
-        for kk = 1:length(gridHeight)-1 % minkk:maxkk
+        
+        
+        %% OPTION 1
+        
+        % IN DVPT
+        
+        % trying to improve on the old one above by searching for additional floors
+        thresh = 1.5;
+        
+        % Men are sorted by ascending floor and descending BS level so we're going
+        % to go through them ALL, one at a time
+        
+        for kk = 1:size(men,1)
             
-            % for each floor, find all men at this floor and at floor
-            % above.
-            ifloor = find(men(:,3)==kk); % men(ifloor,:)
-            ifloorplus = find(men(:,3)==kk+1); % men(ifloorplus,:)
+            kk
             
-            % Men are sorted by ascending floor and descending level.
-            % For each man at current floor, starting with the highest
-            % level...
-            for pp = 1:length(ifloor)
+            % find all men at the three next floors above
+            ifloorplus = find(men(:,3)>men(kk,3) & men(:,3)<men(kk,3)+4); % men(ifloorplus,:)
+            
+            % compute horizontal distance between this man and men on next
+            % floor
+            tt = repmat(men(kk,1:2),length(ifloorplus),1);
+            sdist = sqrt(sum((tt - men(ifloorplus,1:2)).^2,2));
+            
+            % keep only those under thresh
+            ifloorplus = ifloorplus(sdist<thresh); % men(ifloorplus,:)
+            
+            
+            if size(ifloorplus,1) == 0
+                % if there is none, reloop to next man
+                continue
                 
-                % men(ifloor(pp),:)
+            elseif size(ifloorplus,1) == 1
+                % if there is one, add to company
                 
-                % calculate distance between this man and all men on above
-                % floor (distance measured in cell units)
-                tt = repmat(men(ifloor(pp),1:2),length(ifloorplus),1);
-                sdist = sqrt(sum((tt - men(ifloorplus,1:2)).^2,2));
-                [a,b] = min(sdist);
+                % we mean that this man:
+                % men(ifloorplus,:)
+                % should join the company of this man:
+                % men(kk,:)
+                men(ifloorplus,5) = men(kk,5);
                 
-                % if minimum distance is below threshold, associate man
-                % from above floor to company of this man. Note on the
-                % threshold: because we're measuring distance between a man
-                % at floor N and men at floor N+1, the minimum distance
-                % achievable is exactly 1 grid unit. A man on one of the
-                % fourth closest cells exactly above will be sqrt(2)=1.41
-                % units away. On the diagonals: sqrt(3)=1.73. On the next
-                % in line: sqrt(5)=2.23. Next, sqrt(6)=2.49... So if one
-                % sets a threshold of 2 for example, we mean companies can
-                % only grow if a man is found within the 8 closest
-                % neighbours...
+            elseif size(ifloorplus,1) > 1
+                % if there is more than one
                 
-                thresh = 2;
-                if a<thresh
+                % retain the ones at the lowest floor
+                ifloorplus = ifloorplus(men(ifloorplus,3) == min( men(ifloorplus,3) ));
+                
+                if size(ifloorplus,1) == 1
+                    % if there is only one, add to company
+                    men(ifloorplus,5) = men(kk,5);
+                elseif size(ifloorplus,1) > 1
                     
-                    % we mean that this man:
-                    % men(ifloorplus(b),:)
-                    % should join the company of this man:
-                    % men(ifloor(pp),:)
-                    men(ifloorplus(b),5) = men(ifloor(pp),5);
+                    % if there is more than one, rank by horizontal distance
+                    tt = repmat(men(kk,1:2),length(ifloorplus),1);
+                    sdist = sqrt(sum((tt - men(ifloorplus,1:2)).^2,2));
                     
-                    % we remove this man from the list of men at upper
-                    % floor so that they cannot be associated with another
-                    % company.
-                    ifloorplus(b)=[];
+                    % take the lowest distance
+                    ifloorplus = ifloorplus(sdist == min(sdist));
                     
+                    if size(ifloorplus,1) == 1
+                        % if there is only one, add to company
+                        men(ifloorplus,5) = men(kk,5);
+                    elseif size(ifloorplus,1) > 1
+                        % if there are more than one, rank by BS level
+                        
+                        % take the strongest
+                        ifloorplus = ifloorplus(men(ifloorplus,4) == max(men(ifloorplus,4)));
+                        
+                        if size(ifloorplus,1) == 1
+                            % if there is only one, add to company
+                            men(ifloorplus,5) = men(kk,5);
+                        elseif size(ifloorplus,1) > 1
+                            % if there are more than one, take the first one
+                            ifloorplus = ifloorplus(1);
+                        end
+                    end
                 end
-                
-                % possible other development: if we can't find a man at
-                % upper floor to link with, maybe find the cell with
-                % highest level in the 8-neighborhood above?
-                % bing = men(ifloor(pp),1:2);
-                % remy = gridLevel(bing(1)-1:bing(1)+1,bing(2)-1:bing(2)+1,kk+1);
-                
             end
-            
         end
         
+        
+        
+        
+        
+        
+%         %% OPTION 2
+%         
+%         %minkk = min(men(:,3));
+%         %maxkk = max(men(:,3))-1;
+%         for kk = 1:length(gridHeight)-1 % minkk:maxkk
+%             
+%             % for each floor, find all men at this floor and at floor
+%             % above.
+%             ifloor = find(men(:,3)==kk); % men(ifloor,:)
+%             ifloorplus = find(men(:,3)==kk+1); % men(ifloorplus,:)
+%             
+%             % Men are sorted by ascending floor and descending level.
+%             % For each man at current floor, starting with the highest
+%             % level...
+%             for pp = 1:length(ifloor)
+%                 
+%                 % men(ifloor(pp),:)
+%                 
+%                 % calculate distance between this man and all men on above
+%                 % floor (distance measured in cell units)
+%                 tt = repmat(men(ifloor(pp),1:2),length(ifloorplus),1);
+%                 sdist = sqrt(sum((tt - men(ifloorplus,1:2)).^2,2));
+%                 [a,b] = min(sdist);
+%                 
+%                 % if minimum distance is below threshold, associate man
+%                 % from above floor to company of this man. Note on the
+%                 % threshold: because we're measuring distance between a man
+%                 % at floor N and men at floor N+1, the minimum distance
+%                 % achievable is exactly 1 grid unit. A man on one of the
+%                 % fourth closest cells exactly above will be sqrt(2)=1.41
+%                 % units away. On the diagonals: sqrt(3)=1.73. On the next
+%                 % in line: sqrt(5)=2.23. Next, sqrt(6)=2.49... So if one
+%                 % sets a threshold of 2 for example, we mean companies can
+%                 % only grow if a man is found within the 8 closest
+%                 % neighbours...
+%                 
+%                 if a<thresh
+%                     
+%                     % we mean that this man:
+%                     % men(ifloorplus(b),:)
+%                     % should join the company of this man:
+%                     % men(ifloor(pp),:)
+%                     men(ifloorplus(b),5) = men(ifloor(pp),5);
+%                     
+%                     % we remove this man from the list of men at upper
+%                     % floor so that they cannot be associated with another
+%                     % company.
+%                     ifloorplus(b)=[];
+%                     
+%                 end
+%                 
+%                 % possible other development: if we can't find a man at
+%                 % upper floor to link with, maybe find the cell with
+%                 % highest level in the 8-neighborhood above?
+%                 % bing = men(ifloor(pp),1:2);
+%                 % remy = gridLevel(bing(1)-1:bing(1)+1,bing(2)-1:bing(2)+1,kk+1);
+%                 
+%             end
+%             
+%         end
+        
+        
+       
         % next, remove all companies that don't have at least N men
-        N = 5;
+        N = 10;
         men2 = men;
         men2 = sortrows(men2,5); % sort according to company #
         [c,ia] = unique(men2(:,5)); % get unique company numbers and the index of each first man in a company
@@ -343,37 +445,42 @@ switch method
         
         kelp = [gridNorthing(men2(:,1),1), gridEasting(1,men2(:,2))', gridHeight(men2(:,3))', men2(:,4:5)];
         
-        %         % display the men only
-        %         HHH = figure;
-        %         M = sortrows(men2,5);
-        %         % sum levels per company:
-        %         C = unique(M(:,5));
-        %         sumlevel=nan(size(C));
-        %         for bb = 1:length(C)
-        %             sumlevel(bb) = sum( M(M(:,5)==C(bb),4));
-        %         end
-        %         C = [C,sumlevel];
-        %         C = sortrows(C,-2);
-        %         cols = ['ymcrgbk'];
-        %         for bb = 1:size(C,1)
-        %             ind = find(M(:,5)==C(bb));
-        %             plot3(M(ind,1),M(ind,2),M(ind,3),'.-','Color',cols(mod(bb,7)+1))
-        %             hold on
-        %             axis tight
-        %             axis equal
-        %             grid on
-        %         end
+                % display the men only
+                HHH = figure;
+                M = sortrows(men2,5);
+                % sum levels per company:
+                C = unique(M(:,5));
+                sumlevel=nan(size(C));
+                for bb = 1:length(C)
+                    sumlevel(bb) = sum( M(M(:,5)==C(bb),4));
+                end
+                C = [C,sumlevel];
+                C = sortrows(C,-2);
+                cols = ['ymcrgbk'];
+                for bb = 1:size(C,1)
+                    ind = find(M(:,5)==C(bb));
+                    plot3(M(ind,1),M(ind,2),M(ind,3),'.-','Color',cols(mod(bb,7)+1))
+                    hold on
+                    axis tight
+                    axis equal
+                    grid on
+                end
         
-        %
-        %         % rotating view for 3D display
-        %         for ii=1:360
-        %             view(ii,45)
-        %             pause(0.1)
-        %             drawnow
-        %         end
-        %         ylabel('Northing (cm)')
-        %         zlabel('Height (cm)')
-        %         xlabel('Easting (cm)')
+        
+                % rotating view for 3D display
+                for ii=1:360
+                    view(ii,45)
+                    pause(0.1)
+                    drawnow
+                end
+                ylabel('Northing (cm)')
+                zlabel('Height (cm)')
+                xlabel('Easting (cm)')
+        
+        % how to display on wedge data?
+        
+        
+        
         
         
     otherwise

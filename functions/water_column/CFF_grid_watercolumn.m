@@ -28,7 +28,7 @@ function [gridEasting,gridNorthing,gridHeight,gridLevel,gridDensity] = CFF_grid_
 %%%
 
 
-% get field to grid
+%% get field to grid
 switch varargin{1}
     case 'original'
         Lfield = 'WC_PBS_SampleAmplitudes';
@@ -44,8 +44,12 @@ end
 expression = ['L = reshape(fData.' Lfield ',1,[]);'];
 eval(expression);
 
-% turn L to natural before averaging
-L = exp(L./20);
+
+%% turn L to natural before averaging
+L = 10.^(L./20);
+
+
+%% build the easting norhting and height grids
 
 % get grid resolution
 res = varargin{2};
@@ -72,34 +76,32 @@ numE = ceil((maxE-minE)./res)+1;
 numN = ceil((maxN-minN)./res)+1;
 numH = ceil((maxH-minH)./res)+1;
 
-% writing the grid parameters in Easting and Northing for the gridding
-% function 
-gridE_param = [minE,res,numE];
-gridN_param = [minN,res,numN];
+% build the grids
+gridEasting  = [0:numE-1].*res + minE;
+gridNorthing = [0:numN-1].*res + minN;
+gridHeight   = [0:numH-1].*res + minH;
 
-% For height, just build the grid
-gridHeight = [0:numH-1].*res + minH;
+
+%% now grid watercolumn data
+
+% option 1: griddata in 3D (too long, give up on this)
+% gridLevel = griddata(E,N,H,L,gridEasting,gridNorthing,gridHeight); 
+
+% option 2: slice by slice
 
 % initialize cubes of values and density
 gridLevel   = nan(numN,numE,numH);
 gridDensity = nan(numN,numE,numH);
 
-% for each hortizontal slice
 for kk = 1:length(gridHeight)-1
     
-    % find samples in slice
+    % find all samples in slice
     ind = find( H>gridHeight(kk) & H<gridHeight(kk+1) & ~isnan(L) );
     
     if ~isempty(ind)
         
-        % get values
-        sE = E(ind);
-        sN = N(ind);
-        sH = H(ind);
-        sL = L(ind);
-        
         % gridding at constant weight
-        [tmpgridLevel,tmpgridDensity] = CFF_weightgrid(sE,sN,sL,gridE_param,gridN_param,1);
+        [tmpgridLevel,tmpgridDensity] = CFF_weightgrid(E(ind),N(ind),L(ind),[minE,res,numE],[minN,res,numN],1);
         
         % add to cubes
         gridLevel(:,:,kk) = tmpgridLevel;
@@ -109,14 +111,14 @@ for kk = 1:length(gridHeight)-1
     
 end
 
-% build the Easting and Northing grids (as meshgrid)
-gridEasting = [0:gridE_param(3)-1].*gridE_param(2) + gridE_param(1);
-gridNorthing = [0:gridN_param(3)-1].*gridN_param(2) + gridN_param(1);
-[gridEasting,gridNorthing] = meshgrid(gridEasting,gridNorthing);
-
-% bring gridLevel back in decibels
+%% bring gridLevel back in decibels
 gridLevel = 20.*log10(gridLevel);
 
+
+%% meshgrid easting and northing for output
+[gridEasting,gridNorthing] = meshgrid(gridEasting,gridNorthing);
+
+% 
 % % plot for display
 % figure
 % caxismin = min(gridLevel(:));
@@ -125,11 +127,13 @@ gridLevel = 20.*log10(gridLevel);
 %     for kk=1:length(gridHeight)-1
 %         cla
 %         imagesc(gridLevel(:,:,kk));
+%         alpha(double(~isnan(gridLevel(:,:,kk))))
 %         set(gca,'Ydir','normal')
 %         caxis([caxismin caxismax])
 %         colorbar
 %         grid on
-%         axis equal square tight
+%         axis equal 
+%         pause(0.2)
 %         drawnow
 %     end
 % end

@@ -26,62 +26,144 @@ function [h,F] = CFF_watercolumn_display(fData, varargin)
 %
 % - v0.1:
 %   - first version.
+% EXAMPLES
+% % The following are ALL equivalent: display original data, all pings, flat, no bottom detect, no movie
+% CFF_watercolumn_display(fData); 
+% CFF_watercolumn_display(fData,'original');
+% CFF_watercolumn_display(fData,'data','original'); 
+% CFF_watercolumn_display(fData,'pings',NaN);
+% CFF_watercolumn_display(fData,'data','original','pings',NaN);
+% CFF_watercolumn_display(fData,'data','original','pings',NaN,'displayType','flat');
+%
+% Let's make things a little different: testing all disaply types with
+% bottom detect
+% CFF_watercolumn_display(fData,'data','L1','displayType','flat','bottomDetectDisplay','yes');
+% CFF_watercolumn_display(fData,'data','L1','displayType','wedge','bottomDetectDisplay','yes');
+% CFF_watercolumn_display(fData,'data','L1','displayType','projected','bottomDetectDisplay','yes');
+%
+% % all good now testing movie creation in flat mode
+% CFF_watercolumn_display(fData,'data','L1','displayType','flat','bottomDetectDisplay','yes','movieFile','testmovie');
+%
+% % testing other data:
+% otherM = fData.WC_PBS_SampleAmplitudes + 50;
+% CFF_watercolumn_display(fData,'otherData',otherM);
+%
+% % all old display work. Check the old order of inputs work
+% [h,F] = CFF_watercolumn_display(fData, 'original','flat','test');
+%
+% % ok now test the new inputs:
+% CFF_watercolumn_display(fData,'data','L1','displayType','projected','bottomDetectDisplay','yes','waterColumnTargets',kelp);
 %
 %%%
 % Alex Schimel, Deakin University
 % Version 0.1 (25-Apr-2014)
 %%%
 
-%% initalize figure and frames
+%% INPUT PARSER
+
+p = inputParser;
+
+% 'fData', the multibeam data structure (required)
+addRequired(p,'fData',@isstruct);
+
+% 'data' (originally varargin{1}) is an optional string indicating which data in
+% fData to grab: 'original' (default) or 'L1'. Can be overwritten by
+% inputting "otherData". 
+arg = 'data';
+defaultArg = 'original';
+checkArg = @(x) any(validatestring(x,{'original','L1'})); % valid arguments for optional check
+addOptional(p,arg,defaultArg,checkArg);
+
+% 'displayType' (originally varargin{2}) is an optional string indicating type of display: 'flat' (default), 'wedge' or 'projected'
+arg = 'displayType';
+defaultArg = 'flat';
+checkArg = @(x) any(validatestring(x,{'flat', 'wedge','projected'})); % valid arguments for optional check
+addOptional(p,arg,defaultArg,checkArg);
+
+% 'movieFile' (originally varargin{3}) is an optional string indicating filename for
+% movie creation. By default an empty string to mean no movie is to be
+% made.
+arg = 'movieFile';
+defaultArg = '';
+checkArg = @(x) ischar(x); % valid arguments for optional check
+addOptional(p,arg,defaultArg,checkArg);
+
+% 'otherData' is an optional array of numbers to be displayed instead of
+% the original or L1 data. Used in case of tests for new types of
+% corrections
+arg = 'otherData';
+defaultArg = [];
+checkArg = @(x) isnumeric(x) && all(size(x)==size(fData.WC_PBS_SampleAmplitudes)); % valid arguments for optional check
+addOptional(p,arg,defaultArg,checkArg);
+
+% 'pings' is an optional vector of numbers indicating which pings to be
+% displayed. If more than one, the result will be an animation. 
+arg = 'pings';
+defaultArg = NaN;
+checkArg = @(x) isnumeric(x); % valid arguments for optional check
+addOptional(p,arg,defaultArg,checkArg);
+
+% 'bottomDetectDisplay' is a string indicating
+% wether to display the bottom detect in the data or not: 'no' (default) or 'yes'. 
+arg = 'bottomDetectDisplay';
+defaultArg = 'no';
+checkArg = @(x) any(validatestring(x,{'no', 'yes'})); % valid arguments for optional check
+addOptional(p,arg,defaultArg,checkArg);
+
+% 'waterColumnTargets' is an optional array of points to be displayed ontop
+% of watercolumn data. Must be a table with Easting, Northing, Height,
+% ping, beam, range.
+arg = 'waterColumnTargets';
+defaultArg = [];
+checkArg = @(x) isnumeric(x); % valid arguments for optional check
+addOptional(p,arg,defaultArg,checkArg);
+
+% now parse actual inputs
+parse(p,fData, varargin{:});
+
+% display contents of the input parser?
+...
+
+%% initalize figure
 h = figure;
 
-if nargin>3 & ischar(varargin{3})
-    % request for movie file
-    
-    % set figure to full screen
+% set figure to full screen if movie requested
+if ~isempty(p.Results.movieFile)
     set(h,'Position',get(0,'ScreenSize'))
-    
-    % flag for movie creation
-    createmovie = 1;
-    
-    moviefile = varargin{3};
-    
-    clear F
-    
-else
-    createmovie = 0;
 end
 
+
 %% grab data
-if ischar(varargin{1})
-    % varargin{1} is a string indicating which data in fData to grab
-    switch varargin{1}
-        case 'original'
-            M = fData.WC_PBS_SampleAmplitudes;
-        case 'L1'
-            M = fData.X_PBS_L1;
-        otherwise
-            error
-    end
-elseif isnumeric(varargin{1}) && all(size(varargin{1})==size(fData.WC_PBS_SampleAmplitudes))
-    % varargin{1} is the data to display (for tests inside functions)
-    M = varargin{1};
+switch p.Results.data
+    case 'original'
+        M = fData.WC_PBS_SampleAmplitudes;
+    case 'L1'
+        M = fData.X_PBS_L1;
 end
+if ~isempty(p.Results.otherData)
+    % overwrite with other data
+    M = p.Results.otherData;
+end
+
+%% main data info
+[pathstr, name, ext]= fileparts(fData.MET_MATfilename{1});
+fileName = [name ext];
+pingCounter = fData.WC_P1_PingCounter;
+nPings = size(fData.WC_PBS_SampleAmplitudes,1);
 
 
 %% display data
-switch varargin{2}
+switch p.Results.displayType
     
     case 'flat'
         
-        % grab data
-        [pathstr, name, ext]= fileparts(fData.MET_MATfilename{1});
-        fileName = [name ext];
-        pingCounter = fData.WC_P1_PingCounter;
-        nPings = size(M,1);
+        % bottom detect
         b = fData.WC_PB_DetectedRangeInSamples;
-        
-        % bounds
+%         
+%         % targets
+%         t = 0;
+%         
+        % data bounds
         maxM = max(max(max(M)));
         minM = min(min(min(M)));
         
@@ -90,14 +172,19 @@ switch varargin{2}
             imagesc(squeeze(M(ii,:,:))')
             colorbar
             hold on
-            plot(b(ii,:),'k.')
+            if strcmp(p.Results.bottomDetectDisplay,'yes')
+                plot(b(ii,:),'k.')
+            end
+%             if strcmp(p.Results.waterColumnTargets,'yes')
+%                 plot(t(ii,:),'ko')
+%             end
             caxis([minM maxM])
             grid on
             title(sprintf('%s - ping %i (%i/%i)',fileName,pingCounter(ii),ii,nPings),'Interpreter','none')
             xlabel('beam #')
             ylabel('sample #')
             drawnow
-            if createmovie
+            if ~isempty(p.Results.movieFile)
                 F(ii) = getframe(gcf);
             end
         end
@@ -105,16 +192,14 @@ switch varargin{2}
     case 'wedge'
         
         % grab data
-        [pathstr, name, ext]= fileparts(fData.MET_MATfilename{1});
-        fileName = [name ext];
-        pingCounter = fData.WC_P1_PingCounter;
-        nPings = size(fData.WC_PBS_SampleAmplitudes,1);
         X = fData.X_PBS_sampleAcrossDist;
         Y = fData.X_PBS_sampleUpDist;
+        
+        % bottom detect
         bX = fData.X_PB_bottomAcrossDist;
         bY = fData.X_PB_bottomUpDist;
         
-        % bounds
+        % data bounds
         maxX = max(max(max(X)));
         minX = min(min(min(X)));
         maxY = max(max(max(Y)));
@@ -128,7 +213,9 @@ switch varargin{2}
             colorbar
             shading interp
             hold on
-            plot(bX(ii,:),bY(ii,:),'k.')
+            if strcmp(p.Results.bottomDetectDisplay,'yes')
+                plot(bX(ii,:),bY(ii,:),'k.')
+            end
             axis([minX maxX minY maxY])
             caxis([minM maxM])
             grid on
@@ -137,7 +224,7 @@ switch varargin{2}
             xlabel('across distance (starboard) (m)')
             ylabel('height above sonar (m)')
             drawnow
-            if createmovie
+            if ~isempty(p.Results.movieFile)
                 F(ii) = getframe(gcf);
             end
         end
@@ -145,18 +232,16 @@ switch varargin{2}
     case 'projected'
         
         % grab data
-        [pathstr, name, ext]= fileparts(fData.MET_MATfilename{1});
-        fileName = [name ext];
-        pingCounter = fData.WC_P1_PingCounter;
-        nPings = size(fData.WC_PBS_SampleAmplitudes,1);
         Easting = fData.X_PBS_sampleEasting;
         Northing = fData.X_PBS_sampleNorthing;
         Height = fData.X_PBS_sampleHeight;
+        
+        % bottom detect
         bEasting = fData.X_PB_bottomEasting;
         bNorthing = fData.X_PB_bottomNorthing;
         bHeight = fData.X_PB_bottomHeight;
         
-        % bounds
+        % data bounds
         maxEasting = max(max(max(Easting)));
         minEasting = min(min(min(Easting)));
         maxNorthing = max(max(max(Northing)));
@@ -175,7 +260,12 @@ switch varargin{2}
             scatter3(x,y,z,2,c,'.')
             colorbar
             hold on
-            plot3(bEasting(ii,:),bNorthing(ii,:),bHeight(ii,:),'k.')
+            if strcmp(p.Results.bottomDetectDisplay,'yes')
+                plot3(bEasting(ii,:),bNorthing(ii,:),bHeight(ii,:),'k.')
+            end
+            if ~isempty(p.Results.waterColumnTargets)
+                plot3(p.Results.waterColumnTargets(:,2),p.Results.waterColumnTargets(:,1),p.Results.waterColumnTargets(:,3),'k.')
+            end
             axis equal
             axis([minEasting maxEasting minNorthing maxNorthing minHeight maxHeight])
             caxis([minM maxM])
@@ -186,22 +276,24 @@ switch varargin{2}
             zlabel('Height (m)')
             CFF_nice_easting_northing
             drawnow
-            if createmovie
+            if ~isempty(p.Results.movieFile)
                 F(ii) = getframe(gcf);
             end
         end
-        
-    otherwise
-        error
+
 end
 
-if createmovie
-    writerObj = VideoWriter(moviefile,'MPEG-4');
+% write movie
+if ~isempty(p.Results.movieFile)
+    writerObj = VideoWriter(p.Results.movieFile,'MPEG-4');
     set(writerObj,'Quality',100)
     open(writerObj)
     writeVideo(writerObj,F);
     close(writerObj);
 end
+
+
+
 
 % figure; plot(SeedsAcrossDist,SeedsDownDist,'.')
 % axis equal
@@ -229,7 +321,4 @@ end
 % for jj = 1:size(M,1)
 %     plot([SeedsDownDist(M(jj,1)),SeedsDownDist(M(jj,2))],[SeedsAcrossDist(M(jj,1)),SeedsAcrossDist(M(jj,2))],'k.-')
 % end
-%
-%
-%
 %
