@@ -49,9 +49,11 @@ function [h,F] = CFF_watercolumn_display(fData, varargin)
 % CFF_watercolumn_display(fData,'otherData',otherM);
 %
 % % all old display work. Check the old order of inputs work
-% [h,F] = CFF_watercolumn_display(fData, 'original','flat','test');
+% [h,F] = CFF_watercolumn_display(fData, 'original','flat','test')
 %
 % % ok now test the new inputs:
+% CFF_watercolumn_display(fData,'data','L1','displayType','flat','bottomDetectDisplay','yes','waterColumnTargets',kelp);
+% CFF_watercolumn_display(fData,'data','L1','displayType','wedge','bottomDetectDisplay','yes','waterColumnTargets',kelp);
 % CFF_watercolumn_display(fData,'data','L1','displayType','projected','bottomDetectDisplay','yes','waterColumnTargets',kelp);
 %
 %%%
@@ -145,6 +147,7 @@ if ~isempty(p.Results.otherData)
     M = p.Results.otherData;
 end
 
+
 %% main data info
 [pathstr, name, ext]= fileparts(fData.MET_MATfilename{1});
 fileName = [name ext];
@@ -159,10 +162,7 @@ switch p.Results.displayType
         
         % bottom detect
         b = fData.WC_PB_DetectedRangeInSamples;
-%         
-%         % targets
-%         t = 0;
-%         
+        
         % data bounds
         maxM = max(max(max(M)));
         minM = min(min(min(M)));
@@ -175,9 +175,13 @@ switch p.Results.displayType
             if strcmp(p.Results.bottomDetectDisplay,'yes')
                 plot(b(ii,:),'k.')
             end
-%             if strcmp(p.Results.waterColumnTargets,'yes')
-%                 plot(t(ii,:),'ko')
-%             end
+            if ~isempty(p.Results.waterColumnTargets)
+                ind = find( p.Results.waterColumnTargets(:,4) == ii);
+                if ~isempty(ind)
+                    temp = p.Results.waterColumnTargets(ind,5:6);
+                    plot(temp(:,1),temp(:,2),'ko')
+                end
+            end
             caxis([minM maxM])
             grid on
             title(sprintf('%s - ping %i (%i/%i)',fileName,pingCounter(ii),ii,nPings),'Interpreter','none')
@@ -215,6 +219,18 @@ switch p.Results.displayType
             hold on
             if strcmp(p.Results.bottomDetectDisplay,'yes')
                 plot(bX(ii,:),bY(ii,:),'k.')
+            end
+            if ~isempty(p.Results.waterColumnTargets)
+                ind = find( p.Results.waterColumnTargets(:,4) == ii);
+                if ~isempty(ind)
+                    temp = p.Results.waterColumnTargets(ind,5:6);
+                    clear up across
+                    for jj = 1:size(temp,1)
+                        up(jj) = fData.X_PBS_sampleUpDist(ii,temp(jj,1),temp(jj,2));
+                        across(jj) = fData.X_PBS_sampleAcrossDist(ii,temp(jj,1),temp(jj,2));
+                    end
+                    plot(across,up,'ko')
+                end
             end
             axis([minX maxX minY maxY])
             caxis([minM maxM])
@@ -264,7 +280,7 @@ switch p.Results.displayType
                 plot3(bEasting(ii,:),bNorthing(ii,:),bHeight(ii,:),'k.')
             end
             if ~isempty(p.Results.waterColumnTargets)
-                plot3(p.Results.waterColumnTargets(:,2),p.Results.waterColumnTargets(:,1),p.Results.waterColumnTargets(:,3),'k.')
+                plot3(p.Results.waterColumnTargets(:,1),p.Results.waterColumnTargets(:,2),p.Results.waterColumnTargets(:,3),'ko')
             end
             axis equal
             axis([minEasting maxEasting minNorthing maxNorthing minHeight maxHeight])
