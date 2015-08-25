@@ -245,33 +245,33 @@ switch method
         
         % remove extra nan rows
         men(isnan(men(:,1)),:) = [];
-        
-        % display gridded data and men
-        clear F
-        HH = figure
-        figure
-        caxismin = min(gridLevel(:));
-        caxismax = max(gridLevel(:));
-        for kk=1:length(gridHeight)-1
-            cla
-            xy = gridLevel(:,:,kk);
-            h = imagesc(xy);
-            %set(h,'alphadata',~isnan(xy))
-            set(gca,'Ydir','normal')
-            % find men to plot
-            ind =(men(:,3)==kk);
-            hold on
-            plot(men(ind,2),men(ind,1),'ko')
-            colorbar
-            title(sprintf('slice %i/%i: %.2f m',kk,length(gridHeight)-1,gridHeight(kk)))
-            caxis([caxismin caxismax])
-            grid on
-            axis square
-            axis equal
-            axis tight
-            drawnow
-            F(kk)=getframe(HH);
-        end
+%         
+%         % display gridded data and men
+%         clear F
+%         HH = figure
+%         figure
+%         caxismin = min(gridLevel(:));
+%         caxismax = max(gridLevel(:));
+%         for kk=1:length(gridHeight)-1
+%             cla
+%             xy = gridLevel(:,:,kk);
+%             h = imagesc(xy);
+%             %set(h,'alphadata',~isnan(xy))
+%             set(gca,'Ydir','normal')
+%             % find men to plot
+%             ind =(men(:,3)==kk);
+%             hold on
+%             plot(men(ind,2),men(ind,1),'ko')
+%             colorbar
+%             title(sprintf('slice %i/%i: %.2f m',kk,length(gridHeight)-1,gridHeight(kk)))
+%             caxis([caxismin caxismax])
+%             grid on
+%             axis square
+%             axis equal
+%             axis tight
+%             drawnow
+%             F(kk)=getframe(HH);
+%         end
         
         
         % step 3. arrange men into companies
@@ -435,7 +435,7 @@ switch method
         
         
         % next, remove all companies that don't have at least N men
-        N = 10;
+        N = 20;
         men2 = men;
         men2 = sortrows(men2,5); % sort according to company #
         [c,ia] = unique(men2(:,5)); % get unique company numbers and the index of each first man in a company
@@ -443,42 +443,76 @@ switch method
         Lia = ismember(men2(:,5),c(ind));
         men2 = men2(Lia,:);
         
+        
+                
+        % display gridded data and men
+        clear F
+        HH = figure
+        figure
+        caxismin = min(gridLevel(:));
+        caxismax = max(gridLevel(:));
+        for kk=1:length(gridHeight)-1
+            cla
+            xy = gridLevel(:,:,kk);
+            h = imagesc(xy);
+            %set(h,'alphadata',~isnan(xy))
+            set(gca,'Ydir','normal')
+            % find men to plot
+            ind =(men2(:,3)==kk);
+            hold on
+            plot(men2(ind,2),men2(ind,1),'ko')
+            colorbar
+            title(sprintf('slice %i/%i: %.2f m',kk,length(gridHeight)-1,gridHeight(kk)))
+            caxis([caxismin caxismax])
+            grid on
+            axis square
+            axis equal
+            axis tight
+            drawnow
+            F(kk)=getframe(HH);
+        end
+
+
+                % display the men only
+                HHH = figure;
+                M = sortrows(men2,5);
+                % sum levels per company:
+                C = unique(M(:,5));
+                sumlevel=nan(size(C));
+                for bb = 1:length(C)
+                    sumlevel(bb) = sum( M(M(:,5)==C(bb),4));
+                end
+                C = [C,sumlevel];
+                C = sortrows(C,-2);
+                cols = ['ymcrgbk'];
+                for bb = 1:size(C,1)
+                    ind = find(M(:,5)==C(bb));
+                    plot3(M(ind,1),M(ind,2),M(ind,3),'.-','Color',cols(mod(bb,7)+1))
+                    hold on
+                    axis tight
+                    axis equal
+                    grid on
+                end
+        
+                % rotating view for 3D display
+                for ii=1:360
+                    view(ii,45)
+                    pause(0.1)
+                    drawnow
+                end
+                ylabel('Northing (cm)')
+                zlabel('Height (cm)')
+                xlabel('Easting (cm)')
+        
+        
+        
         kelp = [gridEasting(1,men2(:,2))', gridNorthing(men2(:,1),1), gridHeight(men2(:,3))', men2(:,4:5)];
         
         % find the closest ping/beam/sample to assoicate each kelp point to
         kelp(:,4:6) = CFF_XYZtoPBS(fData,kelp(:,1:3));
         
-        %         % display the men only
-        %         HHH = figure;
-        %         M = sortrows(men2,5);
-        %         % sum levels per company:
-        %         C = unique(M(:,5));
-        %         sumlevel=nan(size(C));
-        %         for bb = 1:length(C)
-        %             sumlevel(bb) = sum( M(M(:,5)==C(bb),4));
-        %         end
-        %         C = [C,sumlevel];
-        %         C = sortrows(C,-2);
-        %         cols = ['ymcrgbk'];
-        %         for bb = 1:size(C,1)
-        %             ind = find(M(:,5)==C(bb));
-        %             plot3(M(ind,1),M(ind,2),M(ind,3),'.-','Color',cols(mod(bb,7)+1))
-        %             hold on
-        %             axis tight
-        %             axis equal
-        %             grid on
-        %         end
-        %
-        %         % rotating view for 3D display
-        %         for ii=1:360
-        %             view(ii,45)
-        %             pause(0.1)
-        %             drawnow
-        %         end
-        %         ylabel('Northing (cm)')
-        %         zlabel('Height (cm)')
-        %         xlabel('Easting (cm)')
-        
+        CFF_watercolumn_display(fData,'data','L1','displayType','flat','bottomDetectDisplay','yes','waterColumnTargets',kelp);
+        CFF_watercolumn_display(fData,'data','L1','displayType','wedge','bottomDetectDisplay','yes','waterColumnTargets',kelp);
         
         
     otherwise
