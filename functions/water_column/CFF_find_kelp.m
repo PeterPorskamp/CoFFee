@@ -15,8 +15,6 @@ nPings = size(fData.WC_PBS_SampleAmplitudes,1);
 nBeams = size(fData.WC_PBS_SampleAmplitudes,2);
 nSamples = size(fData.WC_PBS_SampleAmplitudes,3);
 
-
-
 switch method
     
     %% per ping basis. In development....
@@ -245,33 +243,32 @@ switch method
         
         % remove extra nan rows
         men(isnan(men(:,1)),:) = [];
-%         
-%         % display gridded data and men
-%         clear F
-%         HH = figure
-%         figure
-%         caxismin = min(gridLevel(:));
-%         caxismax = max(gridLevel(:));
-%         for kk=1:length(gridHeight)-1
-%             cla
-%             xy = gridLevel(:,:,kk);
-%             h = imagesc(xy);
-%             %set(h,'alphadata',~isnan(xy))
-%             set(gca,'Ydir','normal')
-%             % find men to plot
-%             ind =(men(:,3)==kk);
-%             hold on
-%             plot(men(ind,2),men(ind,1),'ko')
-%             colorbar
-%             title(sprintf('slice %i/%i: %.2f m',kk,length(gridHeight)-1,gridHeight(kk)))
-%             caxis([caxismin caxismax])
-%             grid on
-%             axis square
-%             axis equal
-%             axis tight
-%             drawnow
-%             F(kk)=getframe(HH);
-%         end
+        
+        % display gridded data and men
+        clear F;
+        HH = figure;
+        caxismin = min(gridLevel(:));
+        caxismax = max(gridLevel(:));
+        for kk=1:length(gridHeight)-1
+            cla;
+            xy = gridLevel(:,:,kk);
+            h = imagesc(xy);
+            %set(h,'alphadata',~isnan(xy))
+            set(gca,'Ydir','normal');
+            % find men to plot
+            ind =(men(:,3)==kk);
+            hold on;
+            plot(men(ind,2),men(ind,1),'ko')
+            colorbar;
+            title(sprintf('slice %i/%i: %.2f m',kk,length(gridHeight)-1,gridHeight(kk)))
+            caxis([caxismin caxismax]);
+            grid on;
+            axis square;
+            axis equal;
+            axis tight;
+            drawnow;
+            F(kk)=getframe(HH);
+        end
         
         
         % step 3. arrange men into companies
@@ -471,38 +468,38 @@ switch method
             drawnow
             F(kk)=getframe(HH);
         end
-
-
-                % display the men only
-                HHH = figure;
-                M = sortrows(men2,5);
-                % sum levels per company:
-                C = unique(M(:,5));
-                sumlevel=nan(size(C));
-                for bb = 1:length(C)
-                    sumlevel(bb) = sum( M(M(:,5)==C(bb),4));
-                end
-                C = [C,sumlevel];
-                C = sortrows(C,-2);
-                cols = ['ymcrgbk'];
-                for bb = 1:size(C,1)
-                    ind = find(M(:,5)==C(bb));
-                    plot3(M(ind,1),M(ind,2),M(ind,3),'.-','Color',cols(mod(bb,7)+1))
-                    hold on
-                    axis tight
-                    axis equal
-                    grid on
-                end
         
-                % rotating view for 3D display
-                for ii=1:360
-                    view(ii,45)
-                    pause(0.1)
-                    drawnow
-                end
-                ylabel('Northing (cm)')
-                zlabel('Height (cm)')
-                xlabel('Easting (cm)')
+        
+        % display the men only
+        HHH = figure;
+        M = sortrows(men2,5);
+        % sum levels per company:
+        C = unique(M(:,5));
+        sumlevel=nan(size(C));
+        for bb = 1:length(C)
+            sumlevel(bb) = sum( M(M(:,5)==C(bb),4));
+        end
+        C = [C,sumlevel];
+        C = sortrows(C,-2);
+        cols = ['ymcrgbk'];
+        for bb = 1:size(C,1)
+            ind = find(M(:,5)==C(bb));
+            plot3(M(ind,1),M(ind,2),M(ind,3),'.-','Color',cols(mod(bb,7)+1))
+            hold on
+            axis tight
+            axis equal
+            grid on
+        end
+        
+        % rotating view for 3D display
+        for ii=1:360
+            view(ii,45)
+            pause(0.1)
+            drawnow
+        end
+        ylabel('Northing (cm)')
+        zlabel('Height (cm)')
+        xlabel('Easting (cm)')
         
         
         
