@@ -4,9 +4,9 @@
 % run these commands in Matlab from CoFFee's root folder to add the functions to Matlab's path
 
 1. Check the contents of the current path:
-'path'
+    path
 
-2. add CoFFee's functions folder and its subfolders to the path:
+2.Add CoFFee's functions folder and its subfolders to the path:
 addpath(genpath([cd '\functions\'])) 
 
 3. Check the contents of updated path
