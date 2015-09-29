@@ -1,10 +1,19 @@
 # CoFFee
 ## Alex's Matlab tools
 
-in progress..
+% run these commands in Matlab from CoFFee's root folder to add the functions to Matlab's path
 
-path % to check current path
-% restoredefaultpath % optional, to restore default
-addpath(genpath([cd '\functions\'])) % add this checkout folder (and its subfolders) to the path
-path % to check new path
-savepath % save for future sessions
+1. Check the contents of the current path:
+'path'
+
+2. add CoFFee's functions folder and its subfolders to the path:
+addpath(genpath([cd '\functions\'])) 
+
+3. Check the contents of updated path
+path 
+
+4. Save path for future Matlab sessions
+savepath 
+
+% NOTE optional, to restore default %
+% restoredefaultpath 

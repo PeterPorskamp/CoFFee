@@ -1214,4 +1214,5 @@ end
 
 %% saving data
 fclose(fid);
-save(MATfilename, '-regexp', 'EM\w*');
+save(MATfilename, '-regexp', 'EM\w*','-v7.3');
+
