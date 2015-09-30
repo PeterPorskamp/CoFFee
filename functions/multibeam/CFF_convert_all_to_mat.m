@@ -1,47 +1,59 @@
 function [ALLfileinfo] = CFF_convert_all_to_mat(ALLfilename, varargin)
 % function [ALLfileinfo] = CFF_convert_all_to_mat(ALLfilename, varargin)
 %
+% WARNING: THIS FUNCTION IS OBSOLETE AND IS NOT SUPPORTED ANYMORE. 
+% USE CFF_convert_all_to_mat_v2 instead
+%
 % DESCRIPTION
 %
-% converts Kongsberg EM series binary .all or .wcd data files (ALL) to a
+% Converts Kongsberg EM series binary .all or .wcd data files (ALL) to a
 % Matlab format (MAT), conserving all information from the original as it
-% is. 
+% is.
 %
-% INPUT VARIABLES
+% REQUIRED INPUT ARGUMENTS
+% - 'ALLfilename': string filename to parse (extension in .all or .wcd)
 %
-% - ALLfilename: .all or .wcd file to parse
-% - varargin{1} (optional): output MAT file. If unspecified, the MAT file
-% is saved in same folder as input ALL file and bears the same name except
-% for its extension.
+% OPTIONAL INPUT ARGUMENTS
+% - 'MATfilename': string filename to output. If not provided (default),
+% the MAT file is saved in same folder as input file and bears the same
+% name except for its extension changed to '.mat'. 
 %
 % OUTPUT VARIABLES
 %
-% - ALLfileinfo (optional): structure for description of the contents of
-% the all file. Fields are:
-%   * ALLfilename
-%   * filesize (in bytes)
-%   * datagsizeformat (endianness of the datagram size field)
-%   * datagramsformat (endianness of the datagrams)
-%   * datagramtypenumber (for each datagram, SIMRAD datagram type in decimal)
-%   * datagramtype (for each datagram, SIMRAD datagram type description)
-%   * parsedstatus (for each datagram, 1 if datagram has been parsed, 0 if not)
-%   * datagramcounter (for each datagram, counter of this type of datagram in the file)
-%   * datagramsize (for each datagram, datagram size in bytes)
-%   * synccounter (for each datagram, number of bytes founds between this datagram and the previous one, indicative of sync error) 
+% - ALLfileinfo (optional): structure for description of the datagrams in
+% input file. Fields are: 
+%   * ALLfilename: input file name
+%   * filesize: file size in bytes
+%   * datagsizeformat: endianness of the datagram size field 'b' or 'l'
+%   * datagramsformat: endianness of the datagrams 'b' or 'l'
+%   * datagNumberInFile: 
+%   * datagTypeNumber: for each datagram, SIMRAD datagram type in decimal
+%   * datagTypeText: for each datagram, SIMRAD datagram type description
+%   * parsed: for each datagram, 1 if datagram has been parsed, 0 if not
+%   * counter: the counter of this type of datagram in the file (ie
+%   first datagram of that type is 1 and last datagram is the total number
+%   of datagrams of that type).
+%   * number: the number/counter found in the datagram (usually
+%   different to counter)
+%   * size: for each datagram, datagram size in bytes
+%   * syncCounter: for each datagram, the number of bytes founds between
+%   this datagram and the previous one (any number different than zero
+%   indicates a sunc error
+%   * emNumber: EM Model number (eg 2045 for EM2040c)
+%   * date: datagram date in YYYMMDD
+%   * timeSinceMidnightInMilliseconds: time since midnight in msecs 
 %
 % RESEARCH NOTES
 %
-% - PU Status output datagram structure seems different to the datagram manual
-% description. Find the good description.#edit 21aug2013: updated to Rev Q. Need to be checked though.# 
-%
-% - output ALLfileinfo is growing inside loops and makes the function
-% taking much longer. Run without if not required.
+% - PU Status output datagram structure seems different to the datagram
+% manual description. Find the good description.#edit 21aug2013: updated to
+% Rev Q. Need to be checked though.# 
 %
 % - code currently lists the EM model numbers supported as a test for sync.
 % Add your model number in the list if it's not currently there. It would
 % be better to remove this test and try to sync on ETX and Checksum
 % instead.
-% 
+%
 % - to print out GPS datagrams (GGA), type: cell2mat(EM_Position.PositionInputDatagramAsReceived')
 %
 % - attitude datagrams contain several values of attitude. to pad cell values to allow plot, type:
@@ -57,15 +69,23 @@ function [ALLfileinfo] = CFF_convert_all_to_mat(ALLfilename, varargin)
 %
 % - to show soundspeed profile (if existing), type: figure;plot(cell2mat(EM_SoundSpeedProfile.Depth)./100, cell2mat(EM_SoundSpeedProfile.SoundSpeed)./10); grid on
 %
+% EXAMPLE
+%
+% ALLfilename = '.\DATA\RAW\0001_20140213_052736_Yolla.all';
+% ALLfileinfo = CFF_convert_all_to_mat(ALLfilename, 'temp.mat');
+%
 % NEW FEATURES
 %
-% - v1.2:
+% - 2015-09-30: 
+%   - inputParser
+%   - added new fields to ALLfileinfo and moved it outside of the switch
+% - 2014-04-28 (v1.2):
 %   - first added to SVN repository
 %   - test existence of output directory and make it if not
 % - v1.1:
 %   - PU Status output datagram updated to Rev Q (but not tested)
 %   - XYZ 88, Seabed Image 89, Raw Range and Angle 78, Water Column
-%   Datagram & Network Attitude Velocity Datagram 110 now supported. 
+%   Datagram & Network Attitude Velocity Datagram 110 now supported.
 % - v1.0:
 %   - NA
 % - v0.4.2:
@@ -86,27 +106,43 @@ function [ALLfileinfo] = CFF_convert_all_to_mat(ALLfilename, varargin)
 % - v0.2:
 %   - optional soundspeed profiles supported
 %
-%%% 
-% Alex Schimel, Deakin University
-% Version 1.2 (28-04-2014)
 %%%
+% Alex Schimel, Deakin University
+%%%
+
+warning('THIS FUNCTION (CFF_convert_all_to_mat) IS OBSOLETE AND IS NOT SUPPORTED ANYMORE. USE CFF_convert_all_to_mat_v2 instead');
+
+%% Input arguments management using inputParser
+p = inputParser;
+
+% ALLfilename to parse as only required argument. Test for file existence and
+% extension.
+argName = 'ALLfilename';
+argCheck = @(x) exist(x,'file') && any(strcmp(CFF_fileextension(x),{'.all','.ALL','.wcd','.WCD'}));
+addRequired(p,argName,argCheck);
+
+% MATfilename output as only optional argument.
+argName = 'MATfilename';
+argDefault = [ALLfilename(1:end-3) 'mat'];
+argCheck = @isstr;
+addOptional(p,argName,argDefault,argCheck)
+
+% now parse inputs
+parse(p,ALLfilename,varargin{:})
+
+% and get results
+ALLfilename = p.Results.ALLfilename;
+MATfilename = p.Results.MATfilename;
+
+% if output folder doesn't exist, create it
+if ~exist(fileparts(MATfilename),'dir') && ~isempty(fileparts(MATfilename))
+    mkdir(fileparts(MATfilename));
+end
 
 %% supported systems:
 emNumberList = [300; 2045; 3000; 3002; 3020]; %2045 is 2040c
 
-%% if no input MATfilename, use same path and filename as ALL file
-if nargin<2
-    MATfilename = [ALLfilename(1:end-3) 'mat'];
-else
-    MATfilename = varargin{1};
-end
 
-%% check that output folder exists or create it
-[p,n,e] = fileparts(MATfilename);
-if ~exist(p,'dir')
-    mkdir(p);
-end
-    
 %% Checking byte ordering
 % - Luciano's all files are in 'b'
 % - Erik's all file is in 'l'
@@ -115,7 +151,7 @@ end
 % separate the byte ordering tests for these two types.
 
 % opening file
-[fid, message] = fopen(ALLfilename, 'r');
+[fid,~] = fopen(ALLfilename, 'r');
 
 % number of bytes in file
 temp = fread(fid,inf,'uint8');
@@ -125,40 +161,43 @@ fseek(fid,0,-1);
 
 % reading data from first datagram
 while 1
-
+    
     % read in little endian
-    point = ftell(fid);
+    pif    = ftell(fid);
     nbDatagL = fread(fid,1,'uint32','l'); % number of bytes in datagram
-        if isempty(nbDatagL), error('.all file parsing synchronization failed'); end %file finished
-    fseek(fid,point,-1); % come back
-    nbDatagB = fread(fid,1,'uint32','b'); % number of bytes in datagram
-    stxDatag = fread(fid,1,'uint8'); % STX (always H02)
-    typeDatag = fread(fid,1,'uint8'); % SIMRAD type of datagram
-    emNumberL = fread(fid,1,'uint16','l'); % EM Model Number
-    fseek(fid,-2,0); % come back
-    emNumberB = fread(fid,1,'uint16','b'); % EM Model Number
-
+    if isempty(nbDatagL)
+        %file finished
+        error('.all file parsing synchronization failed');
+    end
+    fseek(fid,pif,-1); % come back to re-read in b
+    nbDatagB        = fread(fid,1,'uint32','b'); % number of bytes in datagram
+    stxDatag        = fread(fid,1,'uint8');      % STX (always H02)
+    datagTypeNumber = fread(fid,1,'uint8');      % SIMRAD type of datagram
+    emNumberL       = fread(fid,1,'uint16','l'); % EM Model Number
+    fseek(fid,-2,0); % come back to re-read in b
+    emNumberB       = fread(fid,1,'uint16','b'); % EM Model Number
+    
     % trying to read ETX
-    if fseek(fid,point+4+nbDatagL-3,-1) + 1 
+    if fseek(fid,pif+4+nbDatagL-3,-1) + 1
         etxDatagL = fread(fid,1,'uint8'); % ETX (always H03)
     else
         etxDatagL = NaN;
     end
-    if fseek(fid,point+4+nbDatagB-3,-1) + 1
+    if fseek(fid,pif+4+nbDatagB-3,-1) + 1
         etxDatagB = fread(fid,1,'uint8'); % ETX (always H03)
     else
         etxDatagB = NaN;
     end
-
+    
     % testing need for synchronization
-    synchronized =    (sum(emNumberL==emNumberList) || sum(emNumberB==emNumberList)) ... 
-                    & (etxDatagB==3 || etxDatagL==3) ...
-                    & stxDatag==2;               
+    synchronized =    (sum(emNumberL==emNumberList) || sum(emNumberB==emNumberList)) ...
+        & (etxDatagB==3 || etxDatagL==3) ...
+        & stxDatag==2;
     if synchronized
         break
     else
-        % trying to re-synchronize...
-        fseek(fid,point+1,-1);
+        % trying to re-synchronize: fwd one byte and repeat the above
+        fseek(fid,pif+1,-1);
         continue
     end
 end
@@ -179,12 +218,12 @@ end
 
 fclose(fid);
 
-clear emNumberL emNumberB fid nbDatagL nbDatagB stxDatag typeDatag point etxDatagL etxDatagB synchronized
+clear emNumberL emNumberB fid nbDatagL nbDatagB stxDatag datagTypeNumber pif etxDatagL etxDatagB synchronized
 
 % create ouptut info file if required
 if nargout
-    ALLfileinfo.ALLfilename = ALLfilename;
-    ALLfileinfo.filesize = filesize;
+    ALLfileinfo.ALLfilename     = ALLfilename;
+    ALLfileinfo.filesize        = filesize;
     ALLfileinfo.datagsizeformat = datagsizeformat;
     ALLfileinfo.datagramsformat = datagramsformat;
 end
@@ -192,25 +231,33 @@ end
 
 %% Reopening file with the good byte ordering
 
-[fid, message] = fopen(ALLfilename, 'r',datagramsformat);
+[fid,~] = fopen(ALLfilename, 'r',datagramsformat);
 
-% intitializing datagram counter
+% intitializing the counter of datagrams in this file
 kk = 0;
 
 % initializing synchronization counter: the number of bytes that needed to
 % be passed before this datagram appeared
-syncn = 0;
+syncCounter = 0;
+
 
 %% Reading datagrams
 while 1
-
+    
     % new datagram begins, start reading
-    point = ftell(fid);
+    pif   = ftell(fid);
     nbDatag = fread(fid,1,'uint32',datagsizeformat); % number of bytes in datagram
-        if isempty(nbDatag), break; end % file finished, leave the loop  
-    stxDatag = fread(fid,1,'uint8'); % STX (always H02)
-    typeDatag = fread(fid,1,'uint8'); % SIMRAD type of datagram
-    emNumber = fread(fid,1,'uint16'); % EM Model Number
+    if isempty(nbDatag)
+        % file finished, leave the loop
+        break; 
+    end 
+    stxDatag                        = fread(fid,1,'uint8');  % STX (always H02)
+    datagTypeNumber                 = fread(fid,1,'uint8');  % SIMRAD type of datagram
+    emNumber                        = fread(fid,1,'uint16'); % EM Model Number
+    date                            = fread(fid,1,'uint32'); % date
+    timeSinceMidnightInMilliseconds = fread(fid,1,'uint32'); % time since midnight in milliseconds
+    number                          = fread(fid,1,'uint16'); % datagram or ping number
+    systemSerialNumber              = fread(fid,1,'uint16'); % EM system serial number
     
     % test for synchronization
     % to pass, first data reading must show that:
@@ -219,996 +266,965 @@ while 1
     % - STX must be equal to 2.
     % - the EM model number must be in the list showed at beginning
     if nbDatag>filesize || stxDatag~=2 || ~sum(emNumber==emNumberList)
-        fseek(fid,point+1,-1); % re-synchronizing 1 byte
-        syncn = syncn+1; % update counter
+        fseek(fid,pif+1,-1); % re-synchronizing 1 byte
+        syncCounter = syncCounter+1; % update counter
         continue
     end
     
-    switch typeDatag
+    % reset the datagram counter and parsed switch
+    counter = NaN;
+    parsed = 0;
+    
+    switch datagTypeNumber
+        
+        case 49
+            
+            datagTypeText = 'PU STATUS OUTPUT (31H)';
+            
+            % counter for this type of datagram
+            try i49=i49+1; catch, i49=1; end
+            counter = i49;
 
-%         case 49 % PU STATUS OUTPUT (31H)
-%             
-%             % datagrams counter
-%             if ~exist('EM_PUStatus'), ii=1; else ii=size(EM_PUStatus.TypeOfDatagram,2)+1; end
-% 
+% SOMETHING WRONG WITH THIS DATAGRAM, NEW TEMPLATE? REWRITE USING LATEST KONGSBERG DOCUMENTATION
 %             % parsing
-%             EM_PUStatus.STX(ii)                                    = stxDatag;
-%             EM_PUStatus.TypeOfDatagram(ii)                         = typeDatag;
-%             EM_PUStatus.EMModelNumber(ii)                          = emNumber;
-%             EM_PUStatus.Date(ii)                                   = fread(fid,1,'uint32');
-%             EM_PUStatus.TimeSinceMidnightInMilliseconds(ii)        = fread(fid,1,'uint32');
-%             EM_PUStatus.StatusDatagramCounter(ii)                  = fread(fid,1,'uint16');
-%             EM_PUStatus.SystemSerialNumber(ii)                     = fread(fid,1,'uint16');                          
-%             EM_PUStatus.PingRate(ii)                               = fread(fid,1,'uint16'); 
-%             EM_PUStatus.PingCounterOfLatestPing(ii)                = fread(fid,1,'uint16');
-%             EM_PUStatus.DistanceBetweenSwath(ii)                   = fread(fid,1,'uint8');
-%             EM_PUStatus.SensorInputStatusUDPPort2(ii)              = fread(fid,1,'uint32');
-%             EM_PUStatus.SensorInputStatusSerialPort1(ii)           = fread(fid,1,'uint32');
-%             EM_PUStatus.SensorInputStatusSerialPort2(ii)           = fread(fid,1,'uint32');
-%             EM_PUStatus.SensorInputStatusSerialPort3(ii)           = fread(fid,1,'uint32');
-%             EM_PUStatus.SensorInputStatusSerialPort4(ii)           = fread(fid,1,'uint32');
-%             EM_PUStatus.PPSStatus(ii)                              = fread(fid,1,'int8');
-%             EM_PUStatus.PositionStatus(ii)                         = fread(fid,1,'int8');
-%             EM_PUStatus.AttitudeStatus(ii)                         = fread(fid,1,'int8');
-%             EM_PUStatus.ClockStatus(ii)                            = fread(fid,1,'int8');
-%             EM_PUStatus.HeadingStatus (ii)                         = fread(fid,1,'int8');
-%             EM_PUStatus.PUStatus(ii)                               = fread(fid,1,'uint8');
-%             EM_PUStatus.LastReceivedHeading(ii)                    = fread(fid,1,'uint16');  
-%             EM_PUStatus.LastReceivedRoll(ii)                       = fread(fid,1,'int16');  
-%             EM_PUStatus.LastReceivedPitch(ii)                      = fread(fid,1,'int16');  
-%             EM_PUStatus.LastReceivedHeave(ii)                      = fread(fid,1,'int16'); 
-%             EM_PUStatus.SoundSpeedAtTransducer(ii)                 = fread(fid,1,'uint16'); 
-%             EM_PUStatus.LastReceivedDepth(ii)                      = fread(fid,1,'uint32'); 
-%             EM_PUStatus.AlongShipVelocity(ii)                      = fread(fid,1,'int16');
-%             EM_PUStatus.AttitudeVelocitySensor(ii)                 = fread(fid,1,'uint8');
-%             EM_PUStatus.MammalProtectionRamp(ii)                   = fread(fid,1,'uint8');
-%             EM_PUStatus.BackscatterAtObliqueAngle(ii)              = fread(fid,1,'int8');
-%             EM_PUStatus.BackscatterAtNormalIncidence(ii)           = fread(fid,1,'int8');
-%             EM_PUStatus.FixedGain(ii)                              = fread(fid,1,'int8');
-%             EM_PUStatus.DepthToNormalIncidence(ii)                 = fread(fid,1,'uint8');
-%             EM_PUStatus.RangeToNormalIncidence(ii)                 = fread(fid,1,'uint16');
-%             EM_PUStatus.PortCoverage(ii)                           = fread(fid,1,'uint8');
-%             EM_PUStatus.StarboardCoverage(ii)                      = fread(fid,1,'uint8');
-%             EM_PUStatus.SoundSpeedAtTransducerFoundFromProfile(ii) = fread(fid,1,'uint16');
-%             EM_PUStatus.YawStabilization(ii)                       = fread(fid,1,'int16');
-%             EM_PUStatus.PortCoverageOrAcrossShipVelocity(ii)       = fread(fid,1,'int16');
-%             EM_PUStatus.StarboardCoverageOrDownwardVelocity(ii)    = fread(fid,1,'int16');
-%             EM_PUStatus.EM2040CPUtemp(ii)                          = fread(fid,1,'int8'); 
-%             EM_PUStatus.ETX(ii)                                    = fread(fid,1,'uint8');
-%             EM_PUStatus.CheckSum(ii)                               = fread(fid,1,'uint16');
-% 
+%             EM_PUStatus.STX(i49)                                    = stxDatag;
+%             EM_PUStatus.TypeOfDatagram(i49)                         = datagTypeNumber;
+%             EM_PUStatus.EMModelNumber(i49)                          = emNumber;
+%             EM_PUStatus.Date(i49)                                   = date;
+%             EM_PUStatus.TimeSinceMidnightInMilliseconds(i49)        = timeSinceMidnightInMilliseconds;
+%             EM_PUStatus.StatusDatagramCounter(i49)                  = number;
+%             EM_PUStatus.SystemSerialNumber(i49)                     = systemSerialNumber;
+%             
+%             EM_PUStatus.PingRate(i49)                               = fread(fid,1,'uint16');
+%             EM_PUStatus.PingCounterOfLatestPing(i49)                = fread(fid,1,'uint16');
+%             EM_PUStatus.DistanceBetweenSwath(i49)                   = fread(fid,1,'uint8');
+%             EM_PUStatus.SensorInputStatusUDPPort2(i49)              = fread(fid,1,'uint32');
+%             EM_PUStatus.SensorInputStatusSerialPort1(i49)           = fread(fid,1,'uint32');
+%             EM_PUStatus.SensorInputStatusSerialPort2(i49)           = fread(fid,1,'uint32');
+%             EM_PUStatus.SensorInputStatusSerialPort3(i49)           = fread(fid,1,'uint32');
+%             EM_PUStatus.SensorInputStatusSerialPort4(i49)           = fread(fid,1,'uint32');
+%             EM_PUStatus.PPSStatus(i49)                              = fread(fid,1,'int8');
+%             EM_PUStatus.PositionStatus(i49)                         = fread(fid,1,'int8');
+%             EM_PUStatus.AttitudeStatus(i49)                         = fread(fid,1,'int8');
+%             EM_PUStatus.ClockStatus(i49)                            = fread(fid,1,'int8');
+%             EM_PUStatus.HeadingStatus (i49)                         = fread(fid,1,'int8');
+%             EM_PUStatus.PUStatus(i49)                               = fread(fid,1,'uint8');
+%             EM_PUStatus.LastReceivedHeading(i49)                    = fread(fid,1,'uint16');
+%             EM_PUStatus.LastReceivedRoll(i49)                       = fread(fid,1,'int16');
+%             EM_PUStatus.LastReceivedPitch(i49)                      = fread(fid,1,'int16');
+%             EM_PUStatus.LastReceivedHeave(i49)                      = fread(fid,1,'int16');
+%             EM_PUStatus.SoundSpeedAtTransducer(i49)                 = fread(fid,1,'uint16');
+%             EM_PUStatus.LastReceivedDepth(i49)                      = fread(fid,1,'uint32');
+%             EM_PUStatus.AlongShipVelocity(i49)                      = fread(fid,1,'int16');
+%             EM_PUStatus.AttitudeVelocitySensor(i49)                 = fread(fid,1,'uint8');
+%             EM_PUStatus.MammalProtectionRamp(i49)                   = fread(fid,1,'uint8');
+%             EM_PUStatus.BackscatterAtObliqueAngle(i49)              = fread(fid,1,'int8');
+%             EM_PUStatus.BackscatterAtNormalIncidence(i49)           = fread(fid,1,'int8');
+%             EM_PUStatus.FixedGain(i49)                              = fread(fid,1,'int8');
+%             EM_PUStatus.DepthToNormalIncidence(i49)                 = fread(fid,1,'uint8');
+%             EM_PUStatus.RangeToNormalIncidence(i49)                 = fread(fid,1,'uint16');
+%             EM_PUStatus.PortCoverage(i49)                           = fread(fid,1,'uint8');
+%             EM_PUStatus.StarboardCoverage(i49)                      = fread(fid,1,'uint8');
+%             EM_PUStatus.SoundSpeedAtTransducerFoundFromProfile(i49) = fread(fid,1,'uint16');
+%             EM_PUStatus.YawStabilization(i49)                       = fread(fid,1,'int16');
+%             EM_PUStatus.PortCoverageOrAcrossShipVelocity(i49)       = fread(fid,1,'int16');
+%             EM_PUStatus.StarboardCoverageOrDownwardVelocity(i49)    = fread(fid,1,'int16');
+%             EM_PUStatus.EM2040CPUtemp(i49)                          = fread(fid,1,'int8');
+%             EM_PUStatus.ETX(i49)                                    = fread(fid,1,'uint8');
+%             EM_PUStatus.CheckSum(i49)                               = fread(fid,1,'uint16');
+%             
 %             % ETX check
-%             if EM_PUStatus.ETX(ii)~=3
+%             if EM_PUStatus.ETX(i49)~=3
 %                 error('wrong ETX value (EM_PUStatus)');
 %             end
-%                         
-%             % file information
-%             if nargout
-%                 kk = kk+1;
-%                 ALLfileinfo.datagramtypenumber(kk,1) = typeDatag;
-%                 ALLfileinfo.datagramtype(kk,1) = {'PU STATUS OUTPUT (49, 31H)'};
-%                 ALLfileinfo.parsedstatus(kk,1) = 1;
-%                 ALLfileinfo.datagramcounter(kk,1) = ii;
-%                 ALLfileinfo.datagramsize(kk,1) = nbDatag;
-%                 ALLfileinfo.synccounter(kk,1) = syncn;
-%             end
-            
-            
-        case 65 % ATTITUDE (41H)
+%  
+%             % confirm parsing
+%             parsed = 1;
 
-            % datagrams counter
-            if ~exist('EM_Attitude'), ii=1; else ii=size(EM_Attitude.TypeOfDatagram,2)+1; end
+        case 65
+            
+            datagTypeText = 'ATTITUDE (41H)';
+            
+            % counter for this type of datagram
+            try i65=i65+1; catch, i65=1; end
+            counter = i65;
 
             % parsing
-            EM_Attitude.NumberOfBytesInDatagram(ii)                = nbDatag;
-            EM_Attitude.STX(ii)                                    = stxDatag;
-            EM_Attitude.TypeOfDatagram(ii)                         = typeDatag;
-            EM_Attitude.EMModelNumber(ii)                          = emNumber;
-            EM_Attitude.Date(ii)                                   = fread(fid,1,'uint32');
-            EM_Attitude.TimeSinceMidnightInMilliseconds(ii)        = fread(fid,1,'uint32');
-            EM_Attitude.AttitudeCounter(ii)                        = fread(fid,1,'uint16');
-            EM_Attitude.SystemSerialNumber(ii)                     = fread(fid,1,'uint16');          
-            EM_Attitude.NumberOfEntries(ii)                        = fread(fid,1,'uint16'); %N
+            EM_Attitude.NumberOfBytesInDatagram(i65)                = nbDatag;
+            EM_Attitude.STX(i65)                                    = stxDatag;
+            EM_Attitude.TypeOfDatagram(i65)                         = datagTypeNumber;
+            EM_Attitude.EMModelNumber(i65)                          = emNumber;
+            EM_Attitude.Date(i65)                                   = date;
+            EM_Attitude.TimeSinceMidnightInMilliseconds(i65)        = timeSinceMidnightInMilliseconds;
+            EM_Attitude.AttitudeCounter(i65)                        = number;
+            EM_Attitude.SystemSerialNumber(i65)                     = systemSerialNumber;
+            
+            EM_Attitude.NumberOfEntries(i65)                        = fread(fid,1,'uint16'); %N
             % repeat cycle: N entries of 12 bits
-                temp = ftell(fid);
-                N = EM_Attitude.NumberOfEntries(ii) ;
-                EM_Attitude.TimeInMillisecondsSinceRecordStart{ii} = fread(fid,N,'uint16',12-2);
-                fseek(fid,temp+2,'bof'); % to next data type
-                EM_Attitude.SensorStatus{ii}                       = fread(fid,N,'uint16',12-2);
-                fseek(fid,temp+4,'bof'); % to next data type
-                EM_Attitude.Roll{ii}                               = fread(fid,N,'int16',12-2);
-                fseek(fid,temp+6,'bof'); % to next data type
-                EM_Attitude.Pitch{ii}                              = fread(fid,N,'int16',12-2);
-                fseek(fid,temp+8,'bof'); % to next data type
-                EM_Attitude.Heave{ii}                              = fread(fid,N,'int16',12-2);
-                fseek(fid,temp+10,'bof'); % to next data type
-                EM_Attitude.Heading{ii}                            = fread(fid,N,'uint16',12-2);
-                fseek(fid,2-12,'cof'); % we need to come back after last jump
-            EM_Attitude.SensorSystemDescriptor(ii)                 = fread(fid,1,'uint8');
-            EM_Attitude.ETX(ii)                                    = fread(fid,1,'uint8');
-            EM_Attitude.CheckSum(ii)                               = fread(fid,1,'uint16');
-
+            temp = ftell(fid);
+            N = EM_Attitude.NumberOfEntries(i65) ;
+            EM_Attitude.TimeInMillisecondsSinceRecordStart{i65} = fread(fid,N,'uint16',12-2);
+            fseek(fid,temp+2,'bof'); % to next data type
+            EM_Attitude.SensorStatus{i65}                       = fread(fid,N,'uint16',12-2);
+            fseek(fid,temp+4,'bof'); % to next data type
+            EM_Attitude.Roll{i65}                               = fread(fid,N,'int16',12-2);
+            fseek(fid,temp+6,'bof'); % to next data type
+            EM_Attitude.Pitch{i65}                              = fread(fid,N,'int16',12-2);
+            fseek(fid,temp+8,'bof'); % to next data type
+            EM_Attitude.Heave{i65}                              = fread(fid,N,'int16',12-2);
+            fseek(fid,temp+10,'bof'); % to next data type
+            EM_Attitude.Heading{i65}                            = fread(fid,N,'uint16',12-2);
+            fseek(fid,2-12,'cof'); % we need to come back after last jump
+            EM_Attitude.SensorSystemDescriptor(i65)                 = fread(fid,1,'uint8');
+            EM_Attitude.ETX(i65)                                    = fread(fid,1,'uint8');
+            EM_Attitude.CheckSum(i65)                               = fread(fid,1,'uint16');
+            
             % ETX check
-            if EM_Attitude.ETX(ii)~=3
+            if EM_Attitude.ETX(i65)~=3
                 error('wrong ETX value (EM_Attitude)');
             end
             
-            % file information
-            if nargout
-                kk = kk+1;
-                ALLfileinfo.datagramtypenumber(kk,1) = typeDatag;
-                ALLfileinfo.datagramtype(kk,1) = {'ATTITUDE (65, 41H)'};
-                ALLfileinfo.parsedstatus(kk,1) = 1;
-                ALLfileinfo.datagramcounter(kk,1) = ii;
-                ALLfileinfo.datagramsize(kk,1) = nbDatag;
-                ALLfileinfo.synccounter(kk,1) = syncn;
-            end
-
-        case 67 % CLOCK (43H)
-
-            % datagrams counter
-            if ~exist('EM_Clock'), ii=1; else ii=size(EM_Clock.TypeOfDatagram,2)+1; end
-
+            % confirm parsing
+            parsed = 1;
+                
+        case 67
+            
+            datagTypeText = 'CLOCK (43H)';
+            
+            % counter for this type of datagram
+            try i67=i67+1; catch, i67=1; end
+            counter = i67;
+            
             % parsing
-            EM_Clock.NumberOfBytesInDatagram(ii)                          = nbDatag;
-            EM_Clock.STX(ii)                                              = stxDatag;
-            EM_Clock.TypeOfDatagram(ii)                                   = typeDatag;
-            EM_Clock.EMModelNumber(ii)                                    = emNumber;
-            EM_Clock.Date(ii)                                             = fread(fid,1,'uint32');
-            EM_Clock.TimeSinceMidnightInMilliseconds(ii)                  = fread(fid,1,'uint32');
-            EM_Clock.ClockCounter(ii)                                     = fread(fid,1,'uint16');
-            EM_Clock.SystemSerialNumber(ii)                               = fread(fid,1,'uint16');
-            EM_Clock.DateFromExternalClock(ii)                            = fread(fid,1,'uint32');
-            EM_Clock.TimeSinceMidnightInMillisecondsFromExternalClock(ii) = fread(fid,1,'uint32');
-            EM_Clock.OnePPSUse(ii)                                        = fread(fid,1,'uint8');
-            EM_Clock.ETX(ii)                                              = fread(fid,1,'uint8');
-            EM_Clock.CheckSum(ii)                                         = fread(fid,1,'uint16');
+            EM_Clock.NumberOfBytesInDatagram(i67)                          = nbDatag;
+            EM_Clock.STX(i67)                                              = stxDatag;
+            EM_Clock.TypeOfDatagram(i67)                                   = datagTypeNumber;
+            EM_Clock.EMModelNumber(i67)                                    = emNumber;
+            EM_Clock.Date(i67)                                             = date;
+            EM_Clock.TimeSinceMidnightInMilliseconds(i67)                  = timeSinceMidnightInMilliseconds;
+            EM_Clock.ClockCounter(i67)                                     = number;
+            EM_Clock.SystemSerialNumber(i67)                               = systemSerialNumber;
+            
+            EM_Clock.DateFromExternalClock(i67)                            = fread(fid,1,'uint32');
+            EM_Clock.TimeSinceMidnightInMillisecondsFromExternalClock(i67) = fread(fid,1,'uint32');
+            EM_Clock.OnePPSUse(i67)                                        = fread(fid,1,'uint8');
+            EM_Clock.ETX(i67)                                              = fread(fid,1,'uint8');
+            EM_Clock.CheckSum(i67)                                         = fread(fid,1,'uint16');
             
             % ETX check
-            if EM_Clock.ETX(ii)~=3
+            if EM_Clock.ETX(i67)~=3
                 error('wrong ETX value (EM_Clock)');
             end
             
-            % file information
-            if nargout
-                kk = kk+1;
-                ALLfileinfo.datagramtypenumber(kk,1) = typeDatag;
-                ALLfileinfo.datagramtype(kk,1) = {'CLOCK (67, 43H)'};
-                ALLfileinfo.parsedstatus(kk,1) = 1;
-                ALLfileinfo.datagramcounter(kk,1) = ii;
-                ALLfileinfo.datagramsize(kk,1) = nbDatag;
-                ALLfileinfo.synccounter(kk,1) = syncn;
-            end
+            % confirm parsing
+            parsed = 1;
             
-        case 68 % DEPTH DATAGRAM (44H)
-
-            % datagrams counter
-            if ~exist('EM_Depth'), ii=1; else ii=size(EM_Depth.TypeOfDatagram,2)+1; end
-
+        case 68
+            
+            datagTypeText = 'DEPTH DATAGRAM (44H)';
+            
+            % counter for this type of datagram
+            try i68=i68+1; catch, i68=1; end
+            counter = i68;
+            
             % parsing
-            EM_Depth.NumberOfBytesInDatagram(ii)           = nbDatag;
-            EM_Depth.STX(ii)                               = stxDatag;
-            EM_Depth.TypeOfDatagram(ii)                    = typeDatag;
-            EM_Depth.EMModelNumber(ii)                     = emNumber;
-            EM_Depth.Date(ii)                              = fread(fid,1,'uint32');
-            EM_Depth.TimeSinceMidnightInMilliseconds(ii)   = fread(fid,1,'uint32');
-            EM_Depth.PingCounter(ii)                       = fread(fid,1,'uint16');
-            EM_Depth.SystemSerialNumber(ii)                = fread(fid,1,'uint16'); 
-            EM_Depth.HeadingOfVessel(ii)                   = fread(fid,1,'uint16'); 
-            EM_Depth.SoundSpeedAtTransducer(ii)            = fread(fid,1,'uint16'); 
-            EM_Depth.TransmitTransducerDepth(ii)           = fread(fid,1,'uint16');
-            EM_Depth.MaximumNumberOfBeamsPossible(ii)      = fread(fid,1,'uint8');
-            EM_Depth.NumberOfValidBeams(ii)                = fread(fid,1,'uint8'); %N
-            EM_Depth.ZResolution(ii)                       = fread(fid,1,'uint8');
-            EM_Depth.XAndYResolution(ii)                   = fread(fid,1,'uint8');
-            EM_Depth.SamplingRate(ii)                      = fread(fid,1,'uint16'); % OR: EM_Depth.DepthDifferenceBetweenSonarHeadsInTheEM3000D(ii) = fread(fid,1,'int16');
+            EM_Depth.NumberOfBytesInDatagram(i68)           = nbDatag;
+            EM_Depth.STX(i68)                               = stxDatag;
+            EM_Depth.TypeOfDatagram(i68)                    = datagTypeNumber;
+            EM_Depth.EMModelNumber(i68)                     = emNumber;
+            EM_Depth.Date(i68)                              = date;
+            EM_Depth.TimeSinceMidnightInMilliseconds(i68)   = timeSinceMidnightInMilliseconds;
+            EM_Depth.PingCounter(i68)                       = number;
+            EM_Depth.SystemSerialNumber(i68)                = systemSerialNumber;
+            
+            EM_Depth.HeadingOfVessel(i68)                   = fread(fid,1,'uint16');
+            EM_Depth.SoundSpeedAtTransducer(i68)            = fread(fid,1,'uint16');
+            EM_Depth.TransmitTransducerDepth(i68)           = fread(fid,1,'uint16');
+            EM_Depth.MaximumNumberOfBeamsPossible(i68)      = fread(fid,1,'uint8');
+            EM_Depth.NumberOfValidBeams(i68)                = fread(fid,1,'uint8'); %N
+            EM_Depth.ZResolution(i68)                       = fread(fid,1,'uint8');
+            EM_Depth.XAndYResolution(i68)                   = fread(fid,1,'uint8');
+            EM_Depth.SamplingRate(i68)                      = fread(fid,1,'uint16'); % OR: EM_Depth.DepthDifferenceBetweenSonarHeadsInTheEM3000D(i68) = fread(fid,1,'int16');
             % repeat cycle: N entries of 16 bits
-                temp = ftell(fid);
-                N = EM_Depth.NumberOfValidBeams(ii);
-                EM_Depth.DepthZ{ii}                        = fread(fid,N,'int16',16-2); % OR 'uint16' for EM120 and EM300
-                fseek(fid,temp+2,'bof'); % to next data type
-                EM_Depth.AcrosstrackDistanceY{ii}          = fread(fid,N,'int16',16-2);
-                fseek(fid,temp+4,'bof'); % to next data type
-                EM_Depth.AlongtrackDistanceX{ii}           = fread(fid,N,'int16',16-2);
-                fseek(fid,temp+6,'bof'); % to next data type                    
-                EM_Depth.BeamDepressionAngle{ii}           = fread(fid,N,'int16',16-2);
-                fseek(fid,temp+8,'bof'); % to next data type                    
-                EM_Depth.BeamAzimuthAngle{ii}              = fread(fid,N,'uint16',16-2);
-                fseek(fid,temp+10,'bof'); % to next data type                    
-                EM_Depth.Range{ii}                         = fread(fid,N,'uint16',16-2);
-                fseek(fid,temp+12,'bof'); % to next data type                    
-                EM_Depth.QualityFactor{ii}                 = fread(fid,N,'uint8',16-1);
-                fseek(fid,temp+13,'bof'); % to next data type                         
-                EM_Depth.LengthOfDetectionWindow{ii}       = fread(fid,N,'uint8',16-1);
-                fseek(fid,temp+14,'bof'); % to next data type                         
-                EM_Depth.ReflectivityBS{ii}                = fread(fid,N,'int8',16-1);
-                fseek(fid,temp+15,'bof'); % to next data type                         
-                EM_Depth.BeamNumber{ii}                    = fread(fid,N,'uint8',16-1);
-                fseek(fid,1-16,'cof'); % we need to come back after last jump
-            EM_Depth.TransducerDepthOffsetMultiplier(ii) = fread(fid,1,'int8');
-            EM_Depth.ETX(ii)                             = fread(fid,1,'uint8');
-            EM_Depth.CheckSum(ii)                        = fread(fid,1,'uint16');
+            temp = ftell(fid);
+            N = EM_Depth.NumberOfValidBeams(i68);
+            EM_Depth.DepthZ{i68}                        = fread(fid,N,'int16',16-2); % OR 'uint16' for EM120 and EM300
+            fseek(fid,temp+2,'bof'); % to next data type
+            EM_Depth.AcrosstrackDistanceY{i68}          = fread(fid,N,'int16',16-2);
+            fseek(fid,temp+4,'bof'); % to next data type
+            EM_Depth.AlongtrackDistanceX{i68}           = fread(fid,N,'int16',16-2);
+            fseek(fid,temp+6,'bof'); % to next data type
+            EM_Depth.BeamDepressionAngle{i68}           = fread(fid,N,'int16',16-2);
+            fseek(fid,temp+8,'bof'); % to next data type
+            EM_Depth.BeamAzimuthAngle{i68}              = fread(fid,N,'uint16',16-2);
+            fseek(fid,temp+10,'bof'); % to next data type
+            EM_Depth.Range{i68}                         = fread(fid,N,'uint16',16-2);
+            fseek(fid,temp+12,'bof'); % to next data type
+            EM_Depth.QualityFactor{i68}                 = fread(fid,N,'uint8',16-1);
+            fseek(fid,temp+13,'bof'); % to next data type
+            EM_Depth.LengthOfDetectionWindow{i68}       = fread(fid,N,'uint8',16-1);
+            fseek(fid,temp+14,'bof'); % to next data type
+            EM_Depth.ReflectivityBS{i68}                = fread(fid,N,'int8',16-1);
+            fseek(fid,temp+15,'bof'); % to next data type
+            EM_Depth.BeamNumber{i68}                    = fread(fid,N,'uint8',16-1);
+            fseek(fid,1-16,'cof'); % we need to come back after last jump
+            EM_Depth.TransducerDepthOffsetMultiplier(i68) = fread(fid,1,'int8');
+            EM_Depth.ETX(i68)                             = fread(fid,1,'uint8');
+            EM_Depth.CheckSum(i68)                        = fread(fid,1,'uint16');
             
             % ETX check
-            if EM_Depth.ETX(ii)~=3,
+            if EM_Depth.ETX(i68)~=3,
                 error('wrong ETX value (EM_Depth)');
             end
             
-            % file information
-            if nargout
-                kk = kk+1;
-                ALLfileinfo.datagramtypenumber(kk,1) = typeDatag;
-                ALLfileinfo.datagramtype(kk,1) = {'DEPTH (68, 44H)'};
-                ALLfileinfo.parsedstatus(kk,1) = 1;
-                ALLfileinfo.datagramcounter(kk,1) = ii;
-                ALLfileinfo.datagramsize(kk,1) = nbDatag;
-                ALLfileinfo.synccounter(kk,1) = syncn;
-            end
-            
-%         case 70 % RAW RANGE AND BEAM ANGLE (F) (46H)
-%             
-%             % to write...
-                        
-        case 71 % SURFACE SOUND SPEED (47H)
+            % confirm parsing
+            parsed = 1;
 
-            % datagrams counter
-            if ~exist('EM_SurfaceSoundSpeed'), ii=1; else ii=size(EM_SurfaceSoundSpeed.TypeOfDatagram,2)+1; end
+        case 70
+
+            datagTypeText = 'RAW RANGE AND BEAM ANGLE (F) (46H)';
+            
+            % counter for this type of datagram
+            try i70=i70+1; catch, i70=1; end
+            counter = i70;
 
             % parsing
-            EM_SurfaceSoundSpeed.NumberOfBytesInDatagram(ii)           = nbDatag;
-            EM_SurfaceSoundSpeed.STX(ii)                               = stxDatag;
-            EM_SurfaceSoundSpeed.TypeOfDatagram(ii)                    = typeDatag;
-            EM_SurfaceSoundSpeed.EMModelNumber(ii)                     = emNumber;
-            EM_SurfaceSoundSpeed.Date(ii)                              = fread(fid,1,'uint32');
-            EM_SurfaceSoundSpeed.TimeSinceMidnightInMilliseconds(ii)   = fread(fid,1,'uint32');
-            EM_SurfaceSoundSpeed.SoundSpeedCounter(ii)                 = fread(fid,1,'uint16');
-            EM_SurfaceSoundSpeed.SystemSerialNumber(ii)                = fread(fid,1,'uint16');            
-            EM_SurfaceSoundSpeed.NumberOfEntries(ii)                   = fread(fid,1,'uint16'); %N     
+            % ...to write...
+            
+        case 71
+            
+            datagTypeText = 'SURFACE SOUND SPEED (47H)';
+            
+            % counter for this type of datagram
+            try i71=i71+1; catch, i71=1; end
+            counter = i71;
+            
+            % parsing
+            EM_SurfaceSoundSpeed.NumberOfBytesInDatagram(i71)           = nbDatag;
+            EM_SurfaceSoundSpeed.STX(i71)                               = stxDatag;
+            EM_SurfaceSoundSpeed.TypeOfDatagram(i71)                    = datagTypeNumber;
+            EM_SurfaceSoundSpeed.EMModelNumber(i71)                     = emNumber;
+            EM_SurfaceSoundSpeed.Date(i71)                              = date;
+            EM_SurfaceSoundSpeed.TimeSinceMidnightInMilliseconds(i71)   = timeSinceMidnightInMilliseconds;
+            EM_SurfaceSoundSpeed.SoundSpeedCounter(i71)                 = number;
+            EM_SurfaceSoundSpeed.SystemSerialNumber(i71)                = systemSerialNumber;
+            
+            EM_SurfaceSoundSpeed.NumberOfEntries(i71)                   = fread(fid,1,'uint16'); %N
             % repeat cycle: N entries of 4 bits
-                temp = ftell(fid);
-                N = EM_SurfaceSoundSpeed.NumberOfEntries(ii);
-                EM_SurfaceSoundSpeed.TimeInSecondsSinceRecordStart{ii} = fread(fid,N,'uint16',4-2);
-                fseek(fid,temp+2,'bof'); % to next data type
-                EM_SurfaceSoundSpeed.SoundSpeed{ii}                    = fread(fid,N,'uint16',4-2);
-                fseek(fid,2-4,'cof'); % we need to come back after last jump
-            EM_SurfaceSoundSpeed.Spare(ii)                             = fread(fid,1,'uint8');
-            EM_SurfaceSoundSpeed.ETX(ii)                               = fread(fid,1,'uint8');
-            EM_SurfaceSoundSpeed.CheckSum(ii)                          = fread(fid,1,'uint16');
-
+            temp = ftell(fid);
+            N = EM_SurfaceSoundSpeed.NumberOfEntries(i71);
+            EM_SurfaceSoundSpeed.TimeInSecondsSinceRecordStart{i71} = fread(fid,N,'uint16',4-2);
+            fseek(fid,temp+2,'bof'); % to next data type
+            EM_SurfaceSoundSpeed.SoundSpeed{i71}                    = fread(fid,N,'uint16',4-2);
+            fseek(fid,2-4,'cof'); % we need to come back after last jump
+            EM_SurfaceSoundSpeed.Spare(i71)                             = fread(fid,1,'uint8');
+            EM_SurfaceSoundSpeed.ETX(i71)                               = fread(fid,1,'uint8');
+            EM_SurfaceSoundSpeed.CheckSum(i71)                          = fread(fid,1,'uint16');
+            
             % ETX check
-            if EM_SurfaceSoundSpeed.ETX(ii)~=3
+            if EM_SurfaceSoundSpeed.ETX(i71)~=3
                 error('wrong ETX value (EM_SurfaceSoundSpeed)');
             end
             
-            % file information
-            if nargout
-                kk = kk+1;
-                ALLfileinfo.datagramtypenumber(kk,1) = typeDatag;
-                ALLfileinfo.datagramtype(kk,1) = {'SURFACE SOUND SPEED (71, 47H)'};
-                ALLfileinfo.parsedstatus(kk,1) = 1;
-                ALLfileinfo.datagramcounter(kk,1) = ii;
-                ALLfileinfo.datagramsize(kk,1) = nbDatag;
-                ALLfileinfo.synccounter(kk,1) = syncn;
-            end
-                        
-%         case 72 % HEADING (48H)
-%             
-%             % to write...
-
-        case 73 % INSTALLATION PARAMETERS - START (49H)
-
-            % datagrams counter
-            if ~exist('EM_InstallationStart'), ii=1; else ii=size(EM_InstallationStart.TypeOfDatagram,2)+1; end
-
+            % confirm parsing
+            parsed = 1;
+            
+        case 72
+            
+            datagTypeText = 'HEADING (48H)';
+            
+            % counter for this type of datagram
+            try i72=i72+1; catch, i72=1; end
+            counter = i72;
+            
             % parsing
-            EM_InstallationStart.NumberOfBytesInDatagram(ii)         = nbDatag;
-            EM_InstallationStart.STX(ii)                             = stxDatag;
-            EM_InstallationStart.TypeOfDatagram(ii)                  = typeDatag;
-            EM_InstallationStart.EMModelNumber(ii)                   = emNumber;
-            EM_InstallationStart.Date(ii)                            = fread(fid,1,'uint32');
-            EM_InstallationStart.TimeSinceMidnightInMilliseconds(ii) = fread(fid,1,'uint32');
-            EM_InstallationStart.SurveyLineNumber(ii)                = fread(fid,1,'uint16');
-            EM_InstallationStart.SystemSerialNumber(ii)              = fread(fid,1,'uint16');
-            EM_InstallationStart.SerialNumberOfSecondSonarHead(ii)   = fread(fid,1,'uint16');
-
+            % ...to write...
+            
+        case 73
+            
+            datagTypeText = 'INSTALLATION PARAMETERS - START (49H)';
+            
+            % counter for this type of datagram
+            try i73=i73+1; catch, i73=1; end
+            counter = i73;
+            
+            % parsing
+            EM_InstallationStart.NumberOfBytesInDatagram(i73)         = nbDatag;
+            EM_InstallationStart.STX(i73)                             = stxDatag;
+            EM_InstallationStart.TypeOfDatagram(i73)                  = datagTypeNumber;
+            EM_InstallationStart.EMModelNumber(i73)                   = emNumber;
+            EM_InstallationStart.Date(i73)                            = date;
+            EM_InstallationStart.TimeSinceMidnightInMilliseconds(i73) = timeSinceMidnightInMilliseconds;
+            EM_InstallationStart.SurveyLineNumber(i73)                = number;
+            EM_InstallationStart.SystemSerialNumber(i73)              = systemSerialNumber;
+            
+            EM_InstallationStart.SerialNumberOfSecondSonarHead(i73)   = fread(fid,1,'uint16');
+            
             % 18 bytes of binary data already recorded and 3 more to come = 21.
             % but nbDatag will always be even thanks to SpareByte. so
             % nbDatag is 22 if there is no ASCII data and more if there is
             % ASCII data. read the rest as ASCII (including SpareByte) with
-            % 1 byte for 1 character. 
-            EM_InstallationStart.ASCIIData{ii}                       = fscanf(fid, '%c', nbDatag-21);
-
-            EM_InstallationStart.ETX(ii)                             = fread(fid,1,'uint8');
-            EM_InstallationStart.CheckSum(ii)                        = fread(fid,1,'uint16');
-
+            % 1 byte for 1 character.
+            EM_InstallationStart.ASCIIData{i73}                       = fscanf(fid, '%c', nbDatag-21);
+            
+            EM_InstallationStart.ETX(i73)                             = fread(fid,1,'uint8');
+            EM_InstallationStart.CheckSum(i73)                        = fread(fid,1,'uint16');
+            
             % ETX check
-            if EM_InstallationStart.ETX(ii)~=3
+            if EM_InstallationStart.ETX(i73)~=3
                 error('wrong ETX value (EM_InstallationStart)');
             end
             
-            % file information
-            if nargout
-                kk = kk+1;
-                ALLfileinfo.datagramtypenumber(kk,1) = typeDatag;
-                ALLfileinfo.datagramtype(kk,1) = {'INSTALLATION PARAMETERS - START (73, 49H)'};
-                ALLfileinfo.parsedstatus(kk,1) = 1;
-                ALLfileinfo.datagramcounter(kk,1) = ii;
-                ALLfileinfo.datagramsize(kk,1) = nbDatag;
-                ALLfileinfo.synccounter(kk,1) = syncn;
-            end
+            % confirm parsing
+            parsed = 1;
             
-        case 78 % RAW RANGE AND ANGLE 78 (4EH)
-
-            % datagrams counter
-            if ~exist('EM_RawRangeAngle78'), ii=1; else ii=size(EM_RawRangeAngle78.TypeOfDatagram,2)+1; end
-
+        case 78
+            
+            datagTypeText = 'RAW RANGE AND ANGLE 78 (4EH)';
+            
+            % counter for this type of datagram
+            try i78=i78+1; catch, i78=1; end
+            counter = i78;
+            
             % parsing
-            EM_RawRangeAngle78.NumberOfBytesInDatagram(ii)           = nbDatag;
-            EM_RawRangeAngle78.STX(ii)                               = stxDatag;
-            EM_RawRangeAngle78.TypeOfDatagram(ii)                    = typeDatag;
-            EM_RawRangeAngle78.EMModelNumber(ii)                     = emNumber;
-            EM_RawRangeAngle78.Date(ii)                              = fread(fid,1,'uint32');
-            EM_RawRangeAngle78.TimeSinceMidnightInMilliseconds(ii)   = fread(fid,1,'uint32');
-            EM_RawRangeAngle78.PingCounter(ii)                       = fread(fid,1,'uint16');
-            EM_RawRangeAngle78.SystemSerialNumber(ii)                = fread(fid,1,'uint16');
-            EM_RawRangeAngle78.SoundSpeedAtTransducer(ii)            = fread(fid,1,'uint16'); 
-            EM_RawRangeAngle78.NumberOfTransmitSectors(ii)           = fread(fid,1,'uint16'); %Ntx 
-            EM_RawRangeAngle78.NumberOfReceiverBeamsInDatagram(ii)   = fread(fid,1,'uint16'); %Nrx
-            EM_RawRangeAngle78.NumberOfValidDetections(ii)           = fread(fid,1,'uint16');
-            EM_RawRangeAngle78.SamplingFrequencyInHz(ii)             = fread(fid,1,'float32');
-            EM_RawRangeAngle78.Dscale(ii)                            = fread(fid,1,'uint32');
+            EM_RawRangeAngle78.NumberOfBytesInDatagram(i78)           = nbDatag;
+            EM_RawRangeAngle78.STX(i78)                               = stxDatag;
+            EM_RawRangeAngle78.TypeOfDatagram(i78)                    = datagTypeNumber;
+            EM_RawRangeAngle78.EMModelNumber(i78)                     = emNumber;
+            EM_RawRangeAngle78.Date(i78)                              = date;
+            EM_RawRangeAngle78.TimeSinceMidnightInMilliseconds(i78)   = timeSinceMidnightInMilliseconds;
+            EM_RawRangeAngle78.PingCounter(i78)                       = number;
+            EM_RawRangeAngle78.SystemSerialNumber(i78)                = systemSerialNumber;
+            
+            EM_RawRangeAngle78.SoundSpeedAtTransducer(i78)            = fread(fid,1,'uint16');
+            EM_RawRangeAngle78.NumberOfTransmitSectors(i78)           = fread(fid,1,'uint16'); %Ntx
+            EM_RawRangeAngle78.NumberOfReceiverBeamsInDatagram(i78)   = fread(fid,1,'uint16'); %Nrx
+            EM_RawRangeAngle78.NumberOfValidDetections(i78)           = fread(fid,1,'uint16');
+            EM_RawRangeAngle78.SamplingFrequencyInHz(i78)             = fread(fid,1,'float32');
+            EM_RawRangeAngle78.Dscale(i78)                            = fread(fid,1,'uint32');
             % repeat cycle #1: Ntx entries of 24 bits
-                temp = ftell(fid);
-                C = 24;
-                Ntx = EM_RawRangeAngle78.NumberOfTransmitSectors(ii);
-                EM_RawRangeAngle78.TiltAngle{ii}                     = fread(fid,Ntx,'int16',C-2);
-                fseek(fid,temp+2,'bof'); % to next data type       
-                EM_RawRangeAngle78.FocusRange{ii}                    = fread(fid,Ntx,'uint16',C-2);
-                fseek(fid,temp+4,'bof'); % to next data type
-                EM_RawRangeAngle78.SignalLength{ii}                  = fread(fid,Ntx,'float32',C-4);
-                fseek(fid,temp+8,'bof'); % to next data type
-                EM_RawRangeAngle78.SectorTransmitDelay{ii}           = fread(fid,Ntx,'float32',C-4);
-                fseek(fid,temp+12,'bof'); % to next data type
-                EM_RawRangeAngle78.CentreFrequency{ii}               = fread(fid,Ntx,'float32',C-4);
-                fseek(fid,temp+16,'bof'); % to next data type
-                EM_RawRangeAngle78.MeanAbsorptionCoeff{ii}           = fread(fid,Ntx,'uint16',C-2);
-                fseek(fid,temp+18,'bof'); % to next data type
-                EM_RawRangeAngle78.SignalWaveformIdentifier{ii}      = fread(fid,Ntx,'uint8',C-1);
-                fseek(fid,temp+19,'bof'); % to next data type
-                EM_RawRangeAngle78.TransmitSectorNumberTxArrayIndex{ii} = fread(fid,Ntx,'uint8',C-1);
-                fseek(fid,temp+20,'bof'); % to next data type
-                EM_RawRangeAngle78.SignalBandwidth{ii}               = fread(fid,Ntx,'float32',C-4);
-                fseek(fid,4-C,'cof'); % we need to come back after last jump
-            % repeat cycle #2: Nrx entries of 16 bits    
-                temp = ftell(fid);
-                C = 16;
-                Nrx = EM_RawRangeAngle78.NumberOfReceiverBeamsInDatagram(ii);
-                EM_RawRangeAngle78.BeamPointingAngle{ii}             = fread(fid,Nrx,'int16',C-2);
-                fseek(fid,temp+2,'bof'); % to next data type         
-                EM_RawRangeAngle78.TransmitSectorNumber{ii}          = fread(fid,Nrx,'uint8',C-1);
-                fseek(fid,temp+3,'bof'); % to next data type    
-                EM_RawRangeAngle78.DetectionInfo{ii}                 = fread(fid,Nrx,'uint8',C-1);
-                fseek(fid,temp+4,'bof'); % to next data type    
-                EM_RawRangeAngle78.DetectionWindowLength{ii}         = fread(fid,Nrx,'uint16',C-2);
-                fseek(fid,temp+6,'bof'); % to next data type    
-                EM_RawRangeAngle78.QualityFactor{ii}                 = fread(fid,Nrx,'uint8',C-1);
-                fseek(fid,temp+7,'bof'); % to next data type    
-                EM_RawRangeAngle78.Dcorr{ii}                         = fread(fid,Nrx,'int8',C-1);
-                fseek(fid,temp+8,'bof'); % to next data type    
-                EM_RawRangeAngle78.TwoWayTravelTime{ii}              = fread(fid,Nrx,'float32',C-4);
-                fseek(fid,temp+12,'bof'); % to next data type    
-                EM_RawRangeAngle78.ReflectivityBS{ii}                = fread(fid,Nrx,'int16',C-2);
-                fseek(fid,temp+14,'bof'); % to next data type    
-                EM_RawRangeAngle78.RealTimeCleaningInfo{ii}          = fread(fid,Nrx,'int8',C-1);
-                fseek(fid,temp+15,'bof'); % to next data type    
-                EM_RawRangeAngle78.Spare{ii}                         = fread(fid,Nrx,'uint8',C-1);
-                fseek(fid,1-C,'cof'); % we need to come back after last jump
-            EM_RawRangeAngle78.Spare2(ii)                            = fread(fid,1,'uint8');
-            EM_RawRangeAngle78.ETX(ii)                               = fread(fid,1,'uint8');
-            EM_RawRangeAngle78.CheckSum(ii)                          = fread(fid,1,'uint16');
+            temp = ftell(fid);
+            C = 24;
+            Ntx = EM_RawRangeAngle78.NumberOfTransmitSectors(i78);
+            EM_RawRangeAngle78.TiltAngle{i78}                     = fread(fid,Ntx,'int16',C-2);
+            fseek(fid,temp+2,'bof'); % to next data type
+            EM_RawRangeAngle78.FocusRange{i78}                    = fread(fid,Ntx,'uint16',C-2);
+            fseek(fid,temp+4,'bof'); % to next data type
+            EM_RawRangeAngle78.SignalLength{i78}                  = fread(fid,Ntx,'float32',C-4);
+            fseek(fid,temp+8,'bof'); % to next data type
+            EM_RawRangeAngle78.SectorTransmitDelay{i78}           = fread(fid,Ntx,'float32',C-4);
+            fseek(fid,temp+12,'bof'); % to next data type
+            EM_RawRangeAngle78.CentreFrequency{i78}               = fread(fid,Ntx,'float32',C-4);
+            fseek(fid,temp+16,'bof'); % to next data type
+            EM_RawRangeAngle78.MeanAbsorptionCoeff{i78}           = fread(fid,Ntx,'uint16',C-2);
+            fseek(fid,temp+18,'bof'); % to next data type
+            EM_RawRangeAngle78.SignalWaveformIdentifier{i78}      = fread(fid,Ntx,'uint8',C-1);
+            fseek(fid,temp+19,'bof'); % to next data type
+            EM_RawRangeAngle78.TransmitSectorNumberTxArrayIndex{i78} = fread(fid,Ntx,'uint8',C-1);
+            fseek(fid,temp+20,'bof'); % to next data type
+            EM_RawRangeAngle78.SignalBandwidth{i78}               = fread(fid,Ntx,'float32',C-4);
+            fseek(fid,4-C,'cof'); % we need to come back after last jump
+            % repeat cycle #2: Nrx entries of 16 bits
+            temp = ftell(fid);
+            C = 16;
+            Nrx = EM_RawRangeAngle78.NumberOfReceiverBeamsInDatagram(i78);
+            EM_RawRangeAngle78.BeamPointingAngle{i78}             = fread(fid,Nrx,'int16',C-2);
+            fseek(fid,temp+2,'bof'); % to next data type
+            EM_RawRangeAngle78.TransmitSectorNumber{i78}          = fread(fid,Nrx,'uint8',C-1);
+            fseek(fid,temp+3,'bof'); % to next data type
+            EM_RawRangeAngle78.DetectionInfo{i78}                 = fread(fid,Nrx,'uint8',C-1);
+            fseek(fid,temp+4,'bof'); % to next data type
+            EM_RawRangeAngle78.DetectionWindowLength{i78}         = fread(fid,Nrx,'uint16',C-2);
+            fseek(fid,temp+6,'bof'); % to next data type
+            EM_RawRangeAngle78.QualityFactor{i78}                 = fread(fid,Nrx,'uint8',C-1);
+            fseek(fid,temp+7,'bof'); % to next data type
+            EM_RawRangeAngle78.Dcorr{i78}                         = fread(fid,Nrx,'int8',C-1);
+            fseek(fid,temp+8,'bof'); % to next data type
+            EM_RawRangeAngle78.TwoWayTravelTime{i78}              = fread(fid,Nrx,'float32',C-4);
+            fseek(fid,temp+12,'bof'); % to next data type
+            EM_RawRangeAngle78.ReflectivityBS{i78}                = fread(fid,Nrx,'int16',C-2);
+            fseek(fid,temp+14,'bof'); % to next data type
+            EM_RawRangeAngle78.RealTimeCleaningInfo{i78}          = fread(fid,Nrx,'int8',C-1);
+            fseek(fid,temp+15,'bof'); % to next data type
+            EM_RawRangeAngle78.Spare{i78}                         = fread(fid,Nrx,'uint8',C-1);
+            fseek(fid,1-C,'cof'); % we need to come back after last jump
+            EM_RawRangeAngle78.Spare2(i78)                            = fread(fid,1,'uint8');
+            EM_RawRangeAngle78.ETX(i78)                               = fread(fid,1,'uint8');
+            EM_RawRangeAngle78.CheckSum(i78)                          = fread(fid,1,'uint16');
             
             % ETX check
-            if EM_RawRangeAngle78.ETX(ii)~=3,
+            if EM_RawRangeAngle78.ETX(i78)~=3,
                 error('wrong ETX value (EM_RawRangeAngle78)');
             end
             
-            % file information
-            if nargout
-                kk = kk+1;
-                ALLfileinfo.datagramtypenumber(kk,1) = typeDatag;
-                ALLfileinfo.datagramtype(kk,1) = {'RAW RANGE AND ANGLE 78 (78, 4EH)'};
-                ALLfileinfo.parsedstatus(kk,1) = 1;
-                ALLfileinfo.datagramcounter(kk,1) = ii;
-                ALLfileinfo.datagramsize(kk,1) = nbDatag;
-                ALLfileinfo.synccounter(kk,1) = syncn;
-            end
-
-%         case 79 % QUALITY FACTOR DATAGRAM 79 (4FH)
-%             
-%             % to write...
-
-        case 80 % POSITION (50H)
-
-            % datagrams counter
-            if ~exist('EM_Position'), ii=1; else ii=size(EM_Position.TypeOfDatagram,2)+1; end
-
+            % confirm parsing
+            parsed = 1;
+            
+        case 79
+            
+            datagTypeText = 'QUALITY FACTOR DATAGRAM 79 (4FH)';
+            
+            % counter for this type of datagram
+            try i79=i79+1; catch, i79=1; end
+            counter = i79;
+            
             % parsing
-            EM_Position.NumberOfBytesInDatagram(ii)         = nbDatag;
-            EM_Position.STX(ii)                             = stxDatag;
-            EM_Position.TypeOfDatagram(ii)                  = typeDatag;
-            EM_Position.EMModelNumber(ii)                   = emNumber;
-            EM_Position.Date(ii)                            = fread(fid,1,'uint32');
-            EM_Position.TimeSinceMidnightInMilliseconds(ii) = fread(fid,1,'uint32');
-            EM_Position.PositionCounter(ii)                 = fread(fid,1,'uint16');
-            EM_Position.SystemSerialNumber(ii)              = fread(fid,1,'uint16');                
-            EM_Position.Latitude(ii)                        = fread(fid,1,'int32');
-            EM_Position.Longitude(ii)                       = fread(fid,1,'int32');
-            EM_Position.MeasureOfPositionFixQuality(ii)     = fread(fid,1,'uint16');
-            EM_Position.SpeedOfVesselOverGround(ii)         = fread(fid,1,'uint16');
-            EM_Position.CourseOfVesselOverGround(ii)        = fread(fid,1,'uint16');
-            EM_Position.HeadingOfVessel(ii)                 = fread(fid,1,'uint16');
-            EM_Position.PositionSystemDescriptor(ii)        = fread(fid,1,'uint8');
-            EM_Position.NumberOfBytesInInputDatagram(ii)    = fread(fid,1,'uint8');
-
+            % ...to write...
+            
+        case 80
+            
+            datagTypeText = 'POSITION (50H)';
+            
+            % counter for this type of datagram
+            try i80=i80+1; catch, i80=1; end
+            counter = i80;
+            
+            % parsing
+            EM_Position.NumberOfBytesInDatagram(i80)         = nbDatag;
+            EM_Position.STX(i80)                             = stxDatag;
+            EM_Position.TypeOfDatagram(i80)                  = datagTypeNumber;
+            EM_Position.EMModelNumber(i80)                   = emNumber;
+            EM_Position.Date(i80)                            = date;
+            EM_Position.TimeSinceMidnightInMilliseconds(i80) = timeSinceMidnightInMilliseconds;
+            EM_Position.PositionCounter(i80)                 = number;
+            EM_Position.SystemSerialNumber(i80)              = systemSerialNumber;
+            
+            EM_Position.Latitude(i80)                        = fread(fid,1,'int32');
+            EM_Position.Longitude(i80)                       = fread(fid,1,'int32');
+            EM_Position.MeasureOfPositionFixQuality(i80)     = fread(fid,1,'uint16');
+            EM_Position.SpeedOfVesselOverGround(i80)         = fread(fid,1,'uint16');
+            EM_Position.CourseOfVesselOverGround(i80)        = fread(fid,1,'uint16');
+            EM_Position.HeadingOfVessel(i80)                 = fread(fid,1,'uint16');
+            EM_Position.PositionSystemDescriptor(i80)        = fread(fid,1,'uint8');
+            EM_Position.NumberOfBytesInInputDatagram(i80)    = fread(fid,1,'uint8');
+            
             % next data size is variable. 34 bits of binary data already
             % recorded and 3 more to come = 37. read the rest as ASCII
             % (including SpareByte)
-            EM_Position.PositionInputDatagramAsReceived{ii} = fscanf(fid, '%c', nbDatag-37);
-
-            EM_Position.ETX(ii)                             = fread(fid,1,'uint8');
-            EM_Position.CheckSum(ii)                        = fread(fid,1,'uint16');
-
+            EM_Position.PositionInputDatagramAsReceived{i80} = fscanf(fid, '%c', nbDatag-37);
+            
+            EM_Position.ETX(i80)                             = fread(fid,1,'uint8');
+            EM_Position.CheckSum(i80)                        = fread(fid,1,'uint16');
+            
             % ETX check
-            if EM_Position.ETX(ii)~=3
+            if EM_Position.ETX(i80)~=3
                 error('wrong ETX value (EM_Position)');
             end
             
-            % file information
-            if nargout
-                kk = kk+1;
-                ALLfileinfo.datagramtypenumber(kk,1) = typeDatag;
-                ALLfileinfo.datagramtype(kk,1) = {'POSITION (80, 50H)'};
-                ALLfileinfo.parsedstatus(kk,1) = 1;
-                ALLfileinfo.datagramcounter(kk,1) = ii;
-                ALLfileinfo.datagramsize(kk,1) = nbDatag;
-                ALLfileinfo.synccounter(kk,1) = syncn;
-            end
+            % confirm parsing
+            parsed = 1;
             
+        case 82
             
-        case 82 % RUNTIME PARAMETERS (52H)
-
-            % datagrams counter
-            if ~exist('EM_Runtime'), ii=1; else ii=size(EM_Runtime.TypeOfDatagram,2)+1; end
-
+            datagTypeText = 'RUNTIME PARAMETERS (52H)';
+            
+            % counter for this type of datagram
+            try i82=i82+1; catch, i82=1; end
+            counter = i82;
+            
             % parsing
-            EM_Runtime.NumberOfBytesInDatagram(ii)                 = nbDatag;
-            EM_Runtime.STX(ii)                                     = stxDatag;
-            EM_Runtime.TypeOfDatagram(ii)                          = typeDatag;
-            EM_Runtime.EMModelNumber(ii)                           = emNumber;
-            EM_Runtime.Date(ii)                                    = fread(fid,1,'uint32');
-            EM_Runtime.TimeSinceMidnightInMilliseconds(ii)         = fread(fid,1,'uint32');
-            EM_Runtime.PingCounter(ii)                             = fread(fid,1,'uint16');
-            EM_Runtime.SystemSerialNumber(ii)                      = fread(fid,1,'uint16');
-            EM_Runtime.OperatorStationStatus(ii)                   = fread(fid,1,'uint8');
-            EM_Runtime.ProcessingUnitStatus(ii)                    = fread(fid,1,'uint8');
-            EM_Runtime.BSPStatus(ii)                               = fread(fid,1,'uint8');
-            EM_Runtime.SonarHeadStatus(ii)                         = fread(fid,1,'uint8');
-            EM_Runtime.Mode(ii)                                    = fread(fid,1,'uint8');
-            EM_Runtime.FilterIdentifier(ii)                        = fread(fid,1,'uint8');
-            EM_Runtime.MinimumDepth(ii)                            = fread(fid,1,'uint16');
-            EM_Runtime.MaximumDepth(ii)                            = fread(fid,1,'uint16');
-            EM_Runtime.AbsorptionCoefficient(ii)                   = fread(fid,1,'uint16');
-            EM_Runtime.TransmitPulseLength(ii)                     = fread(fid,1,'uint16');
-            EM_Runtime.TransmitBeamwidth(ii)                       = fread(fid,1,'uint16');
-            EM_Runtime.TransmitPowerReMaximum(ii)                  = fread(fid,1,'int8');
-            EM_Runtime.ReceiveBeamwidth(ii)                        = fread(fid,1,'uint8');
-            EM_Runtime.ReceiveBandwidth(ii)                        = fread(fid,1,'uint8');
-            EM_Runtime.ReceiverFixedGainSetting(ii)                = fread(fid,1,'uint8'); % OR mode 2
-            EM_Runtime.TVGLawCrossoverAngle(ii)                    = fread(fid,1,'uint8');
-            EM_Runtime.SourceOfSoundSpeedAtTransducer(ii)          = fread(fid,1,'uint8');
-            EM_Runtime.MaximumPortSwathWidth(ii)                   = fread(fid,1,'uint16');
-            EM_Runtime.BeamSpacing(ii)                             = fread(fid,1,'uint8');
-            EM_Runtime.MaximumPortCoverage(ii)                     = fread(fid,1,'uint8');
-            EM_Runtime.YawAndPitchStabilizationMode(ii)            = fread(fid,1,'uint8');
-            EM_Runtime.MaximumStarboardCoverage(ii)                = fread(fid,1,'uint8');
-            EM_Runtime.MaximumStarboardSwathWidth(ii)              = fread(fid,1,'uint16');
-            EM_Runtime.DurotongSpeed(ii)                           = fread(fid,1,'uint16'); % OR: EM_Runtime.TransmitAlongTilt(ii) = fread(fid,1,'int16');
-            EM_Runtime.HiLoFrequencyAbsorptionCoefficientRatio(ii) = fread(fid,1,'uint8'); % OR filter identifier 2
-            EM_Runtime.ETX(ii)                                     = fread(fid,1,'uint8');
-            EM_Runtime.CheckSum(ii)                                = fread(fid,1,'uint16');
-
+            EM_Runtime.NumberOfBytesInDatagram(i82)                 = nbDatag;
+            EM_Runtime.STX(i82)                                     = stxDatag;
+            EM_Runtime.TypeOfDatagram(i82)                          = datagTypeNumber;
+            EM_Runtime.EMModelNumber(i82)                           = emNumber;
+            EM_Runtime.Date(i82)                                    = date;
+            EM_Runtime.TimeSinceMidnightInMilliseconds(i82)         = timeSinceMidnightInMilliseconds;
+            EM_Runtime.PingCounter(i82)                             = number;
+            EM_Runtime.SystemSerialNumber(i82)                      = systemSerialNumber;
+            
+            EM_Runtime.OperatorStationStatus(i82)                   = fread(fid,1,'uint8');
+            EM_Runtime.ProcessingUnitStatus(i82)                    = fread(fid,1,'uint8');
+            EM_Runtime.BSPStatus(i82)                               = fread(fid,1,'uint8');
+            EM_Runtime.SonarHeadStatus(i82)                         = fread(fid,1,'uint8');
+            EM_Runtime.Mode(i82)                                    = fread(fid,1,'uint8');
+            EM_Runtime.FilterIdentifier(i82)                        = fread(fid,1,'uint8');
+            EM_Runtime.MinimumDepth(i82)                            = fread(fid,1,'uint16');
+            EM_Runtime.MaximumDepth(i82)                            = fread(fid,1,'uint16');
+            EM_Runtime.AbsorptionCoefficient(i82)                   = fread(fid,1,'uint16');
+            EM_Runtime.TransmitPulseLength(i82)                     = fread(fid,1,'uint16');
+            EM_Runtime.TransmitBeamwidth(i82)                       = fread(fid,1,'uint16');
+            EM_Runtime.TransmitPowerReMaximum(i82)                  = fread(fid,1,'int8');
+            EM_Runtime.ReceiveBeamwidth(i82)                        = fread(fid,1,'uint8');
+            EM_Runtime.ReceiveBandwidth(i82)                        = fread(fid,1,'uint8');
+            EM_Runtime.ReceiverFixedGainSetting(i82)                = fread(fid,1,'uint8'); % OR mode 2
+            EM_Runtime.TVGLawCrossoverAngle(i82)                    = fread(fid,1,'uint8');
+            EM_Runtime.SourceOfSoundSpeedAtTransducer(i82)          = fread(fid,1,'uint8');
+            EM_Runtime.MaximumPortSwathWidth(i82)                   = fread(fid,1,'uint16');
+            EM_Runtime.BeamSpacing(i82)                             = fread(fid,1,'uint8');
+            EM_Runtime.MaximumPortCoverage(i82)                     = fread(fid,1,'uint8');
+            EM_Runtime.YawAndPitchStabilizationMode(i82)            = fread(fid,1,'uint8');
+            EM_Runtime.MaximumStarboardCoverage(i82)                = fread(fid,1,'uint8');
+            EM_Runtime.MaximumStarboardSwathWidth(i82)              = fread(fid,1,'uint16');
+            EM_Runtime.DurotongSpeed(i82)                           = fread(fid,1,'uint16'); % OR: EM_Runtime.TransmitAlongTilt(i82) = fread(fid,1,'int16');
+            EM_Runtime.HiLoFrequencyAbsorptionCoefficientRatio(i82) = fread(fid,1,'uint8'); % OR filter identifier 2
+            EM_Runtime.ETX(i82)                                     = fread(fid,1,'uint8');
+            EM_Runtime.CheckSum(i82)                                = fread(fid,1,'uint16');
+            
             % ETX check
-            if EM_Runtime.ETX(ii)~=3,
+            if EM_Runtime.ETX(i82)~=3,
                 error('wrong ETX value (EM_Runtime)');
             end
             
-            % file information
-            if nargout
-                kk = kk+1;
-                ALLfileinfo.datagramtypenumber(kk,1) = typeDatag;
-                ALLfileinfo.datagramtype(kk,1) = {'RUNTIME PARAMETERS (82, 52H)'};
-                ALLfileinfo.parsedstatus(kk,1) = 1;
-                ALLfileinfo.datagramcounter(kk,1) = ii;
-                ALLfileinfo.datagramsize(kk,1) = nbDatag;
-                ALLfileinfo.synccounter(kk,1) = syncn;
-            end
-
-        case 83 % SEABED IMAGE DATAGRAM (53H)
-
-            % datagrams counter
-            if ~exist('EM_SeabedImage'), ii=1; else ii=size(EM_SeabedImage.TypeOfDatagram,2)+1; end
-
+            % confirm parsing
+            parsed = 1;
+            
+        case 83
+            
+            datagTypeText = 'SEABED IMAGE DATAGRAM (53H)';
+            
+            % counter for this type of datagram
+            try i83=i83+1; catch, i83=1; end
+            counter = i83;
+            
             % parsing
-            EM_SeabedImage.NumberOfBytesInDatagram(ii)         = nbDatag;
-            EM_SeabedImage.STX(ii)                             = stxDatag;
-            EM_SeabedImage.TypeOfDatagram(ii)                  = typeDatag;
-            EM_SeabedImage.EMModelNumber(ii)                   = emNumber;
-            EM_SeabedImage.Date(ii)                            = fread(fid,1,'uint32');
-            EM_SeabedImage.TimeSinceMidnightInMilliseconds(ii) = fread(fid,1,'uint32');
-            EM_SeabedImage.PingCounter(ii)                     = fread(fid,1,'uint16');
-            EM_SeabedImage.SystemSerialNumber(ii)              = fread(fid,1,'uint16');
-            EM_SeabedImage.MeanAbsorptionCoefficient(ii)       = fread(fid,1,'uint16'); % 'this field had earlier definition'
-            EM_SeabedImage.PulseLength(ii)                     = fread(fid,1,'uint16'); % 'this field had earlier definition'
-            EM_SeabedImage.RangeToNormalIncidence(ii)          = fread(fid,1,'uint16'); 
-            EM_SeabedImage.StartRangeSampleOfTVGRamp(ii)       = fread(fid,1,'uint16');
-            EM_SeabedImage.StopRangeSampleOfTVGRamp(ii)        = fread(fid,1,'uint16');
-            EM_SeabedImage.NormalIncidenceBS(ii)               = fread(fid,1,'int8'); %BSN
-            EM_SeabedImage.ObliqueBS(ii)                       = fread(fid,1,'int8'); %BSO
-            EM_SeabedImage.TxBeamwidth(ii)                     = fread(fid,1,'uint16');
-            EM_SeabedImage.TVGLawCrossoverAngle(ii)            = fread(fid,1,'uint8');
-            EM_SeabedImage.NumberOfValidBeams(ii)              = fread(fid,1,'uint8'); %N    
+            EM_SeabedImage.NumberOfBytesInDatagram(i83)         = nbDatag;
+            EM_SeabedImage.STX(i83)                             = stxDatag;
+            EM_SeabedImage.TypeOfDatagram(i83)                  = datagTypeNumber;
+            EM_SeabedImage.EMModelNumber(i83)                   = emNumber;
+            EM_SeabedImage.Date(i83)                            = date;
+            EM_SeabedImage.TimeSinceMidnightInMilliseconds(i83) = timeSinceMidnightInMilliseconds;
+            EM_SeabedImage.PingCounter(i83)                     = number;
+            EM_SeabedImage.SystemSerialNumber(i83)              = systemSerialNumber;
+            
+            EM_SeabedImage.MeanAbsorptionCoefficient(i83)       = fread(fid,1,'uint16'); % 'this field had earlier definition'
+            EM_SeabedImage.PulseLength(i83)                     = fread(fid,1,'uint16'); % 'this field had earlier definition'
+            EM_SeabedImage.RangeToNormalIncidence(i83)          = fread(fid,1,'uint16');
+            EM_SeabedImage.StartRangeSampleOfTVGRamp(i83)       = fread(fid,1,'uint16');
+            EM_SeabedImage.StopRangeSampleOfTVGRamp(i83)        = fread(fid,1,'uint16');
+            EM_SeabedImage.NormalIncidenceBS(i83)               = fread(fid,1,'int8'); %BSN
+            EM_SeabedImage.ObliqueBS(i83)                       = fread(fid,1,'int8'); %BSO
+            EM_SeabedImage.TxBeamwidth(i83)                     = fread(fid,1,'uint16');
+            EM_SeabedImage.TVGLawCrossoverAngle(i83)            = fread(fid,1,'uint8');
+            EM_SeabedImage.NumberOfValidBeams(i83)              = fread(fid,1,'uint8'); %N
             % repeat cycle: N entries of 6 bits
-                temp = ftell(fid);
-                N = EM_SeabedImage.NumberOfValidBeams(ii);
-                EM_SeabedImage.BeamIndexNumber{ii}             = fread(fid,N,'uint8',6-1);
-                fseek(fid,temp+1,'bof'); % to next data type
-                EM_SeabedImage.SortingDirection{ii}            = fread(fid,N,'int8',6-1);
-                fseek(fid,temp+2,'bof'); % to next data type
-                EM_SeabedImage.NumberOfSamplesPerBeam{ii}      = fread(fid,N,'uint16',6-2); %Ns
-                fseek(fid,temp+4,'bof'); % to next data type                    
-                EM_SeabedImage.CentreSampleNumber{ii}          = fread(fid,N,'uint16',6-2);
-                fseek(fid,2-6,'cof'); % we need to come back after last jump  
-            Ns = [EM_SeabedImage.NumberOfSamplesPerBeam{ii}];
+            temp = ftell(fid);
+            N = EM_SeabedImage.NumberOfValidBeams(i83);
+            EM_SeabedImage.BeamIndexNumber{i83}             = fread(fid,N,'uint8',6-1);
+            fseek(fid,temp+1,'bof'); % to next data type
+            EM_SeabedImage.SortingDirection{i83}            = fread(fid,N,'int8',6-1);
+            fseek(fid,temp+2,'bof'); % to next data type
+            EM_SeabedImage.NumberOfSamplesPerBeam{i83}      = fread(fid,N,'uint16',6-2); %Ns
+            fseek(fid,temp+4,'bof'); % to next data type
+            EM_SeabedImage.CentreSampleNumber{i83}          = fread(fid,N,'uint16',6-2);
+            fseek(fid,2-6,'cof'); % we need to come back after last jump
+            Ns = [EM_SeabedImage.NumberOfSamplesPerBeam{i83}];
             for jj = 1:length(Ns)
-                EM_SeabedImage.SampleAmplitudes(ii).beam{jj}   = fread(fid,Ns(jj),'int8');
+                EM_SeabedImage.SampleAmplitudes(i83).beam{jj}   = fread(fid,Ns(jj),'int8');
             end
             % "spare byte if required to get even length (always 0 if used)"
             if floor(sum(Ns)/2) == sum(Ns)/2
                 % even so far, since ETX is 1 byte, add a spare here
-                EM_SeabedImage.Data.SpareByte(ii)              = fread(fid,1,'uint8');
+                EM_SeabedImage.Data.SpareByte(i83)              = fread(fid,1,'uint8');
             else
                 % odd so far, since ETX is 1 bytes, no spare
-                EM_SeabedImage.Data.SpareByte(ii) = NaN;
+                EM_SeabedImage.Data.SpareByte(i83) = NaN;
             end
-            EM_SeabedImage.ETX(ii)                             = fread(fid,1,'uint8');
-            EM_SeabedImage.CheckSum(ii)                        = fread(fid,1,'uint16');
-
+            EM_SeabedImage.ETX(i83)                             = fread(fid,1,'uint8');
+            EM_SeabedImage.CheckSum(i83)                        = fread(fid,1,'uint16');
+            
             % ETX check
-            if EM_SeabedImage.ETX(ii)~=3
+            if EM_SeabedImage.ETX(i83)~=3
                 error('wrong ETX value (EM_SeabedImage)');
             end
             
-            % file information
-            if nargout
-                kk = kk+1;
-                ALLfileinfo.datagramtypenumber(kk,1) = typeDatag;
-                ALLfileinfo.datagramtype(kk,1) = {'SEABED IMAGE DATAGRAM (83, 53H)'};
-                ALLfileinfo.parsedstatus(kk,1) = 1;
-                ALLfileinfo.datagramcounter(kk,1) = ii;
-                ALLfileinfo.datagramsize(kk,1) = nbDatag;
-                ALLfileinfo.synccounter(kk,1) = syncn;
-            end
+            % confirm parsing
+            parsed = 1;
             
-        case 85 % SOUND SPEED PROFILE (55H)
-
-            % datagrams counter
-            if ~exist('EM_SoundSpeedProfile'), ii=1; else ii=size(EM_SoundSpeedProfile.TypeOfDatagram,2)+1; end
-
+        case 85
+            
+            datagTypeText = 'SOUND SPEED PROFILE (55H)';
+            
+            % counter for this type of datagram
+            try i85=i85+1; catch, i85=1; end
+            counter = i85;
+            
             % parsing
-            EM_SoundSpeedProfile.NumberOfBytesInDatagram(ii)                           = nbDatag;
-            EM_SoundSpeedProfile.STX(ii)                                               = stxDatag;
-            EM_SoundSpeedProfile.TypeOfDatagram(ii)                                    = typeDatag;
-            EM_SoundSpeedProfile.EMModelNumber(ii)                                     = emNumber;
-            EM_SoundSpeedProfile.Date(ii)                                              = fread(fid,1,'uint32');
-            EM_SoundSpeedProfile.TimeSinceMidnightInMilliseconds(ii)                   = fread(fid,1,'uint32');            
-            EM_SoundSpeedProfile.ProfileCounter(ii)                                    = fread(fid,1,'uint16');
-            EM_SoundSpeedProfile.SystemSerialNumber(ii)                                = fread(fid,1,'uint16');
-            EM_SoundSpeedProfile.DateWhenProfileWasMade(ii)                            = fread(fid,1,'uint32');
-            EM_SoundSpeedProfile.TimeSinceMidnightInMillisecondsWhenProfileWasMade(ii) = fread(fid,1,'uint32');
-            EM_SoundSpeedProfile.NumberOfEntries(ii)                                   = fread(fid,1,'uint16'); %N
-            EM_SoundSpeedProfile.DepthResolution(ii)                                   = fread(fid,1,'uint16');
+            EM_SoundSpeedProfile.NumberOfBytesInDatagram(i85)                           = nbDatag;
+            EM_SoundSpeedProfile.STX(i85)                                               = stxDatag;
+            EM_SoundSpeedProfile.TypeOfDatagram(i85)                                    = datagTypeNumber;
+            EM_SoundSpeedProfile.EMModelNumber(i85)                                     = emNumber;
+            EM_SoundSpeedProfile.Date(i85)                                              = date;
+            EM_SoundSpeedProfile.TimeSinceMidnightInMilliseconds(i85)                   = timeSinceMidnightInMilliseconds;
+            EM_SoundSpeedProfile.ProfileCounter(i85)                                    = number;
+            EM_SoundSpeedProfile.SystemSerialNumber(i85)                                = systemSerialNumber;
+            
+            EM_SoundSpeedProfile.DateWhenProfileWasMade(i85)                            = fread(fid,1,'uint32');
+            EM_SoundSpeedProfile.TimeSinceMidnightInMillisecondsWhenProfileWasMade(i85) = fread(fid,1,'uint32');
+            EM_SoundSpeedProfile.NumberOfEntries(i85)                                   = fread(fid,1,'uint16'); %N
+            EM_SoundSpeedProfile.DepthResolution(i85)                                   = fread(fid,1,'uint16');
             % repeat cycle: N entries of 8 bits
-                temp = ftell(fid);
-                N = EM_SoundSpeedProfile.NumberOfEntries(ii);
-                EM_SoundSpeedProfile.Depth{ii}                                         = fread(fid,N,'uint32',8-4);
-                fseek(fid,temp+4,'bof'); % to next data type
-                EM_SoundSpeedProfile.SoundSpeed{ii}                                    = fread(fid,N,'uint32',8-4);
-                fseek(fid,4-8,'cof'); % we need to come back after last jump
-            EM_SoundSpeedProfile.SpareByte(ii)                                         = fread(fid,1,'uint8');
-            EM_SoundSpeedProfile.ETX(ii)                                               = fread(fid,1,'uint8');
-            EM_SoundSpeedProfile.CheckSum(ii)                                          = fread(fid,1,'uint16');           
-
+            temp = ftell(fid);
+            N = EM_SoundSpeedProfile.NumberOfEntries(i85);
+            EM_SoundSpeedProfile.Depth{i85}                                         = fread(fid,N,'uint32',8-4);
+            fseek(fid,temp+4,'bof'); % to next data type
+            EM_SoundSpeedProfile.SoundSpeed{i85}                                    = fread(fid,N,'uint32',8-4);
+            fseek(fid,4-8,'cof'); % we need to come back after last jump
+            EM_SoundSpeedProfile.SpareByte(i85)                                         = fread(fid,1,'uint8');
+            EM_SoundSpeedProfile.ETX(i85)                                               = fread(fid,1,'uint8');
+            EM_SoundSpeedProfile.CheckSum(i85)                                          = fread(fid,1,'uint16');
+            
             % ETX check
-            if EM_SoundSpeedProfile.ETX(ii)~=3
+            if EM_SoundSpeedProfile.ETX(i85)~=3
                 error('wrong ETX value (EM_SoundSpeedProfile)');
             end
             
-            % file information
-            if nargout
-                kk = kk+1;
-                ALLfileinfo.datagramtypenumber(kk,1) = typeDatag;
-                ALLfileinfo.datagramtype(kk,1) = {'SOUND SPEED PROFILE (85, 55H)'};
-                ALLfileinfo.parsedstatus(kk,1) = 1;
-                ALLfileinfo.datagramcounter(kk,1) = ii;
-                ALLfileinfo.datagramsize(kk,1) = nbDatag;
-                ALLfileinfo.synccounter(kk,1) = syncn;
-            end
-                        
-        case 88 % XYZ 88 (58H)
+            % confirm parsing
+            parsed = 1;
             
-            % datagrams counter
-            if ~exist('EM_XYZ88'), ii=1; else ii=size(EM_XYZ88.TypeOfDatagram,2)+1; end
-
+        case 88
+            
+            datagTypeText = 'XYZ 88 (58H)';
+            
+            % counter for this type of datagram
+            try i88=i88+1; catch, i88=1; end
+            counter = i88;
+            
             % parsing
-            EM_XYZ88.NumberOfBytesInDatagram(ii)           = nbDatag;
-            EM_XYZ88.STX(ii)                               = stxDatag;
-            EM_XYZ88.TypeOfDatagram(ii)                    = typeDatag;
-            EM_XYZ88.EMModelNumber(ii)                     = emNumber;
-            EM_XYZ88.Date(ii)                              = fread(fid,1,'uint32');
-            EM_XYZ88.TimeSinceMidnightInMilliseconds(ii)   = fread(fid,1,'uint32');
-            EM_XYZ88.PingCounter(ii)                       = fread(fid,1,'uint16');
-            EM_XYZ88.SystemSerialNumber(ii)                = fread(fid,1,'uint16'); 
-            EM_XYZ88.HeadingOfVessel(ii)                   = fread(fid,1,'uint16'); 
-            EM_XYZ88.SoundSpeedAtTransducer(ii)            = fread(fid,1,'uint16'); 
-            EM_XYZ88.TransmitTransducerDepth(ii)           = fread(fid,1,'float32');
-            EM_XYZ88.NumberOfBeamsInDatagram(ii)           = fread(fid,1,'uint16');
-            EM_XYZ88.NumberOfValidDetections(ii)           = fread(fid,1,'uint16');
-            EM_XYZ88.SamplingFrequencyInHz(ii)             = fread(fid,1,'float32');
-            EM_XYZ88.ScanningInfo(ii)                      = fread(fid,1,'uint8');
-            EM_XYZ88.Spare1(ii)                            = fread(fid,1,'uint8');
-            EM_XYZ88.Spare2(ii)                            = fread(fid,1,'uint8');
-            EM_XYZ88.Spare3(ii)                            = fread(fid,1,'uint8');
+            EM_XYZ88.NumberOfBytesInDatagram(i88)           = nbDatag;
+            EM_XYZ88.STX(i88)                               = stxDatag;
+            EM_XYZ88.TypeOfDatagram(i88)                    = datagTypeNumber;
+            EM_XYZ88.EMModelNumber(i88)                     = emNumber;
+            EM_XYZ88.Date(i88)                              = date;
+            EM_XYZ88.TimeSinceMidnightInMilliseconds(i88)   = timeSinceMidnightInMilliseconds;
+            EM_XYZ88.PingCounter(i88)                       = number;
+            EM_XYZ88.SystemSerialNumber(i88)                = systemSerialNumber;
+            
+            EM_XYZ88.HeadingOfVessel(i88)                   = fread(fid,1,'uint16');
+            EM_XYZ88.SoundSpeedAtTransducer(i88)            = fread(fid,1,'uint16');
+            EM_XYZ88.TransmitTransducerDepth(i88)           = fread(fid,1,'float32');
+            EM_XYZ88.NumberOfBeamsInDatagram(i88)           = fread(fid,1,'uint16');
+            EM_XYZ88.NumberOfValidDetections(i88)           = fread(fid,1,'uint16');
+            EM_XYZ88.SamplingFrequencyInHz(i88)             = fread(fid,1,'float32');
+            EM_XYZ88.ScanningInfo(i88)                      = fread(fid,1,'uint8');
+            EM_XYZ88.Spare1(i88)                            = fread(fid,1,'uint8');
+            EM_XYZ88.Spare2(i88)                            = fread(fid,1,'uint8');
+            EM_XYZ88.Spare3(i88)                            = fread(fid,1,'uint8');
             % repeat cycle: N entries of 20 bits
-                temp = ftell(fid);
-                C = 20;
-                N = EM_XYZ88.NumberOfBeamsInDatagram(ii);
-                EM_XYZ88.DepthZ{ii}                        = fread(fid,N,'float32',C-4);
-                fseek(fid,temp+4,'bof'); % to next data type
-                EM_XYZ88.AcrosstrackDistanceY{ii}          = fread(fid,N,'float32',C-4);
-                fseek(fid,temp+8,'bof'); % to next data type
-                EM_XYZ88.AlongtrackDistanceX{ii}           = fread(fid,N,'float32',C-4);
-                fseek(fid,temp+12,'bof'); % to next data type                    
-                EM_XYZ88.DetectionWindowLength{ii}         = fread(fid,N,'uint16',C-2);
-                fseek(fid,temp+14,'bof'); % to next data type                    
-                EM_XYZ88.QualityFactor{ii}                 = fread(fid,N,'uint8',C-1);
-                fseek(fid,temp+15,'bof'); % to next data type                    
-                EM_XYZ88.BeamIncidenceAngleAdjustment{ii}  = fread(fid,N,'int8',C-1);
-                fseek(fid,temp+16,'bof'); % to next data type                    
-                EM_XYZ88.DetectionInformation{ii}          = fread(fid,N,'uint8',C-1);
-                fseek(fid,temp+17,'bof'); % to next data type                         
-                EM_XYZ88.RealTimeCleaningInformation{ii}   = fread(fid,N,'int8',C-1);
-                fseek(fid,temp+18,'bof'); % to next data type                         
-                EM_XYZ88.ReflectivityBS{ii}                = fread(fid,N,'int16',C-2);
-                fseek(fid,2-C,'cof'); % we need to come back after last jump
-            EM_XYZ88.Spare4(ii)                            = fread(fid,1,'uint8');
-            EM_XYZ88.ETX(ii)                               = fread(fid,1,'uint8');
-            EM_XYZ88.CheckSum(ii)                          = fread(fid,1,'uint16');
+            temp = ftell(fid);
+            C = 20;
+            N = EM_XYZ88.NumberOfBeamsInDatagram(i88);
+            EM_XYZ88.DepthZ{i88}                        = fread(fid,N,'float32',C-4);
+            fseek(fid,temp+4,'bof'); % to next data type
+            EM_XYZ88.AcrosstrackDistanceY{i88}          = fread(fid,N,'float32',C-4);
+            fseek(fid,temp+8,'bof'); % to next data type
+            EM_XYZ88.AlongtrackDistanceX{i88}           = fread(fid,N,'float32',C-4);
+            fseek(fid,temp+12,'bof'); % to next data type
+            EM_XYZ88.DetectionWindowLength{i88}         = fread(fid,N,'uint16',C-2);
+            fseek(fid,temp+14,'bof'); % to next data type
+            EM_XYZ88.QualityFactor{i88}                 = fread(fid,N,'uint8',C-1);
+            fseek(fid,temp+15,'bof'); % to next data type
+            EM_XYZ88.BeamIncidenceAngleAdjustment{i88}  = fread(fid,N,'int8',C-1);
+            fseek(fid,temp+16,'bof'); % to next data type
+            EM_XYZ88.DetectionInformation{i88}          = fread(fid,N,'uint8',C-1);
+            fseek(fid,temp+17,'bof'); % to next data type
+            EM_XYZ88.RealTimeCleaningInformation{i88}   = fread(fid,N,'int8',C-1);
+            fseek(fid,temp+18,'bof'); % to next data type
+            EM_XYZ88.ReflectivityBS{i88}                = fread(fid,N,'int16',C-2);
+            fseek(fid,2-C,'cof'); % we need to come back after last jump
+            EM_XYZ88.Spare4(i88)                            = fread(fid,1,'uint8');
+            EM_XYZ88.ETX(i88)                               = fread(fid,1,'uint8');
+            EM_XYZ88.CheckSum(i88)                          = fread(fid,1,'uint16');
             
             % ETX check
-            if EM_XYZ88.ETX(ii)~=3,
+            if EM_XYZ88.ETX(i88)~=3,
                 error('wrong ETX value (EM_XYZ88)');
             end
             
-            % file information
-            if nargout
-                kk = kk+1;
-                ALLfileinfo.datagramtypenumber(kk,1) = typeDatag;
-                ALLfileinfo.datagramtype(kk,1) = {'XYZ 88 (88, 58H)'};
-                ALLfileinfo.parsedstatus(kk,1) = 1;
-                ALLfileinfo.datagramcounter(kk,1) = ii;
-                ALLfileinfo.datagramsize(kk,1) = nbDatag;
-                ALLfileinfo.synccounter(kk,1) = syncn;
-            end
-          
-        case 89 % SEABED IMAGE DATA 89 (59H)
-     
-            % datagrams counter
-            if ~exist('EM_SeabedImage89'), ii=1; else ii=size(EM_SeabedImage89.TypeOfDatagram,2)+1; end
-
+            % confirm parsing
+            parsed = 1;
+            
+        case 89
+            
+            datagTypeText = 'SEABED IMAGE DATA 89 (59H)';
+            
+            % counter for this type of datagram
+            try i89=i89+1; catch, i89=1; end
+            counter = i89;
+            
             % parsing
-            EM_SeabedImage89.NumberOfBytesInDatagram(ii)         = nbDatag;
-            EM_SeabedImage89.STX(ii)                             = stxDatag;
-            EM_SeabedImage89.TypeOfDatagram(ii)                  = typeDatag;
-            EM_SeabedImage89.EMModelNumber(ii)                   = emNumber;
-            EM_SeabedImage89.Date(ii)                            = fread(fid,1,'uint32');
-            EM_SeabedImage89.TimeSinceMidnightInMilliseconds(ii) = fread(fid,1,'uint32');
-            EM_SeabedImage89.PingCounter(ii)                     = fread(fid,1,'uint16');
-            EM_SeabedImage89.SystemSerialNumber(ii)              = fread(fid,1,'uint16');
-            EM_SeabedImage89.SamplingFrequencyInHz(ii)           = fread(fid,1,'float32');
-            EM_SeabedImage89.RangeToNormalIncidence(ii)          = fread(fid,1,'uint16'); 
-            EM_SeabedImage89.NormalIncidenceBS(ii)               = fread(fid,1,'int16'); %BSN
-            EM_SeabedImage89.ObliqueBS(ii)                       = fread(fid,1,'int16'); %BSO
-            EM_SeabedImage89.TxBeamwidthAlong(ii)                = fread(fid,1,'uint16');
-            EM_SeabedImage89.TVGLawCrossoverAngle(ii)            = fread(fid,1,'uint16');
-            EM_SeabedImage89.NumberOfValidBeams(ii)              = fread(fid,1,'uint16');      
+            EM_SeabedImage89.NumberOfBytesInDatagram(i89)         = nbDatag;
+            EM_SeabedImage89.STX(i89)                             = stxDatag;
+            EM_SeabedImage89.TypeOfDatagram(i89)                  = datagTypeNumber;
+            EM_SeabedImage89.EMModelNumber(i89)                   = emNumber;
+            EM_SeabedImage89.Date(i89)                            = date;
+            EM_SeabedImage89.TimeSinceMidnightInMilliseconds(i89) = timeSinceMidnightInMilliseconds;
+            EM_SeabedImage89.PingCounter(i89)                     = number;
+            EM_SeabedImage89.SystemSerialNumber(i89)              = systemSerialNumber;
+            
+            EM_SeabedImage89.SamplingFrequencyInHz(i89)           = fread(fid,1,'float32');
+            EM_SeabedImage89.RangeToNormalIncidence(i89)          = fread(fid,1,'uint16');
+            EM_SeabedImage89.NormalIncidenceBS(i89)               = fread(fid,1,'int16'); %BSN
+            EM_SeabedImage89.ObliqueBS(i89)                       = fread(fid,1,'int16'); %BSO
+            EM_SeabedImage89.TxBeamwidthAlong(i89)                = fread(fid,1,'uint16');
+            EM_SeabedImage89.TVGLawCrossoverAngle(i89)            = fread(fid,1,'uint16');
+            EM_SeabedImage89.NumberOfValidBeams(i89)              = fread(fid,1,'uint16');
             % repeat cycle: N entries of 6 bits
-                temp = ftell(fid);
-                C = 6;
-                N = EM_SeabedImage89.NumberOfValidBeams(ii);
-                EM_SeabedImage89.SortingDirection{ii}            = fread(fid,N,'int8',C-1);
-                fseek(fid,temp+1,'bof'); % to next data type
-                EM_SeabedImage89.DetectionInfo{ii}               = fread(fid,N,'uint8',C-1);
-                fseek(fid,temp+2,'bof'); % to next data type
-                EM_SeabedImage89.NumberOfSamplesPerBeam{ii}      = fread(fid,N,'uint16',C-2); %Ns
-                fseek(fid,temp+4,'bof'); % to next data type                    
-                EM_SeabedImage89.CentreSampleNumber{ii}          = fread(fid,N,'uint16',C-2);
-                fseek(fid,2-C,'cof'); % we need to come back after last jump  
-            Ns = [EM_SeabedImage89.NumberOfSamplesPerBeam{ii}];
+            temp = ftell(fid);
+            C = 6;
+            N = EM_SeabedImage89.NumberOfValidBeams(i89);
+            EM_SeabedImage89.SortingDirection{i89}            = fread(fid,N,'int8',C-1);
+            fseek(fid,temp+1,'bof'); % to next data type
+            EM_SeabedImage89.DetectionInfo{i89}               = fread(fid,N,'uint8',C-1);
+            fseek(fid,temp+2,'bof'); % to next data type
+            EM_SeabedImage89.NumberOfSamplesPerBeam{i89}      = fread(fid,N,'uint16',C-2); %Ns
+            fseek(fid,temp+4,'bof'); % to next data type
+            EM_SeabedImage89.CentreSampleNumber{i89}          = fread(fid,N,'uint16',C-2);
+            fseek(fid,2-C,'cof'); % we need to come back after last jump
+            Ns = [EM_SeabedImage89.NumberOfSamplesPerBeam{i89}];
             for jj = 1:length(Ns)
-                EM_SeabedImage89.SampleAmplitudes(ii).beam{jj}   = fread(fid,Ns(jj),'int16');
+                EM_SeabedImage89.SampleAmplitudes(i89).beam{jj}   = fread(fid,Ns(jj),'int16');
             end
-            EM_SeabedImage89.Spare(ii)                           = fread(fid,1,'uint8');
-            EM_SeabedImage89.ETX(ii)                             = fread(fid,1,'uint8');
-            EM_SeabedImage89.CheckSum(ii)                        = fread(fid,1,'uint16');
-
+            EM_SeabedImage89.Spare(i89)                           = fread(fid,1,'uint8');
+            EM_SeabedImage89.ETX(i89)                             = fread(fid,1,'uint8');
+            EM_SeabedImage89.CheckSum(i89)                        = fread(fid,1,'uint16');
+            
             % ETX check
-            if EM_SeabedImage89.ETX(ii)~=3
+            if EM_SeabedImage89.ETX(i89)~=3
                 error('wrong ETX value (EM_SeabedImage89)');
             end
             
-            % file information
-            if nargout
-                kk = kk+1;
-                ALLfileinfo.datagramtypenumber(kk,1) = typeDatag;
-                ALLfileinfo.datagramtype(kk,1) = {'SEABED IMAGE DATA 89 (89, 59H)'};
-                ALLfileinfo.parsedstatus(kk,1) = 1;
-                ALLfileinfo.datagramcounter(kk,1) = ii;
-                ALLfileinfo.datagramsize(kk,1) = nbDatag;
-                ALLfileinfo.synccounter(kk,1) = syncn;
-            end
-
-%         case 102 % RAW RANGE AND BEAM ANGLE (f) (66H)
-%             
-%             % to write...
-
-        case 104 % DEPTH (PRESSURE) OR HEIGHT DATAGRAM (68H) 
-
-            % datagrams counter
-            if ~exist('EM_Height'), ii=1; else ii=size(EM_Height.TypeOfDatagram,2)+1; end
-
+            % confirm parsing
+            parsed = 1;
+            
+        case 102
+            
+            datagTypeText = 'RAW RANGE AND BEAM ANGLE (f) (66H)';
+            
+            % counter for this type of datagram
+            try i102=i102+1; catch, i102=1; end
+            counter = i102;
+           
             % parsing
-            EM_Height.NumberOfBytesInDatagram(ii)         = nbDatag;
-            EM_Height.STX(ii)                             = stxDatag;
-            EM_Height.TypeOfDatagram(ii)                  = typeDatag;
-            EM_Height.EMModelNumber(ii)                   = emNumber;
-            EM_Height.Date(ii)                            = fread(fid,1,'uint32');
-            EM_Height.TimeSinceMidnightInMilliseconds(ii) = fread(fid,1,'uint32');            
-            EM_Height.HeightCounter(ii)                   = fread(fid,1,'uint16');
-            EM_Height.SystemSerialNumber(ii)              = fread(fid,1,'uint16');
-            EM_Height.Height(ii)                          = fread(fid,1,'int32');
-            EM_Height.HeigthType(ii)                      = fread(fid,1,'uint8');
-            EM_Height.ETX(ii)                             = fread(fid,1,'uint8');
-            EM_Height.CheckSum(ii)                        = fread(fid,1,'uint16');           
+            % ...to write...
+            
+        case 104
+            
+            datagTypeText = 'DEPTH (PRESSURE) OR HEIGHT DATAGRAM (68H)';
+            
+            % counter for this type of datagram
+            try i104=i104+1; catch, i104=1; end
+            counter = i104;
+            
+            % parsing
+            EM_Height.NumberOfBytesInDatagram(i104)         = nbDatag;
+            EM_Height.STX(i104)                             = stxDatag;
+            EM_Height.TypeOfDatagram(i104)                  = datagTypeNumber;
+            EM_Height.EMModelNumber(i104)                   = emNumber;
+            EM_Height.Date(i104)                            = date;
+            EM_Height.TimeSinceMidnightInMilliseconds(i104) = timeSinceMidnightInMilliseconds;
+            EM_Height.HeightCounter(i104)                   = number;
+            EM_Height.SystemSerialNumber(i104)              = systemSerialNumber;
+            
+            EM_Height.Height(i104)                          = fread(fid,1,'int32');
+            EM_Height.HeigthType(i104)                      = fread(fid,1,'uint8');
+            EM_Height.ETX(i104)                             = fread(fid,1,'uint8');
+            EM_Height.CheckSum(i104)                        = fread(fid,1,'uint16');
             
             % ETX check
-            if EM_Height.ETX(ii)~=3
+            if EM_Height.ETX(i104)~=3
                 error('wrong ETX value (EM_Height)');
             end
             
-            % file information
-            if nargout
-                kk = kk+1;
-                ALLfileinfo.datagramtypenumber(kk,1) = typeDatag;
-                ALLfileinfo.datagramtype(kk,1) = {'DEPTH (PRESSURE) OR HEIGHT (104, 68H)'};
-                ALLfileinfo.parsedstatus(kk,1) = 1;
-                ALLfileinfo.datagramcounter(kk,1) = ii;
-                ALLfileinfo.datagramsize(kk,1) = nbDatag;
-                ALLfileinfo.synccounter(kk,1) = syncn;
-            end
-
+            % confirm parsing
+            parsed = 1;
             
-        case 105 % INSTALLATION PARAMETERS -  STOP (69H)
-
-            % datagrams counter
-            if ~exist('EM_InstallationStop'), ii=1; else ii=size(EM_InstallationStop.TypeOfDatagram,2)+1; end
-
+        case 105
+            
+            datagTypeText = 'INSTALLATION PARAMETERS -  STOP (69H)';
+            
+            % counter for this type of datagram
+            try i105=i105+1; catch, i105=1; end
+            counter = i105;
+            
             % parsing
-            EM_InstallationStop.NumberOfBytesInDatagram(ii)         = nbDatag;
-            EM_InstallationStop.STX(ii)                             = stxDatag;
-            EM_InstallationStop.TypeOfDatagram(ii)                  = typeDatag;
-            EM_InstallationStop.EMModelNumber(ii)                   = emNumber;
-            EM_InstallationStop.Date(ii)                            = fread(fid,1,'uint32');
-            EM_InstallationStop.TimeSinceMidnightInMilliseconds(ii) = fread(fid,1,'uint32');
-            EM_InstallationStop.SurveyLineNumber(ii)                = fread(fid,1,'uint16');
-            EM_InstallationStop.SystemSerialNumber(ii)              = fread(fid,1,'uint16');
-            EM_InstallationStop.SerialNumberOfSecondSonarHead(ii)   = fread(fid,1,'uint16');
-
+            EM_InstallationStop.NumberOfBytesInDatagram(i105)         = nbDatag;
+            EM_InstallationStop.STX(i105)                             = stxDatag;
+            EM_InstallationStop.TypeOfDatagram(i105)                  = datagTypeNumber;
+            EM_InstallationStop.EMModelNumber(i105)                   = emNumber;
+            EM_InstallationStop.Date(i105)                            = date;
+            EM_InstallationStop.TimeSinceMidnightInMilliseconds(i105) = timeSinceMidnightInMilliseconds;
+            EM_InstallationStop.SurveyLineNumber(i105)                = number;
+            EM_InstallationStop.SystemSerialNumber(i105)              = systemSerialNumber;
+            
+            EM_InstallationStop.SerialNumberOfSecondSonarHead(i105)   = fread(fid,1,'uint16');
+            
             % 18 bytes of binary data already recorded and 3 more to come = 21.
             % but nbDatag will always be even thanks to SpareByte. so
             % nbDatag is 22 if there is no ASCII data and more if there is
             % ASCII data. read the rest as ASCII (including SpareByte) with
-            % 1 byte for 1 character.            
-            EM_InstallationStop.ASCIIData{ii}                       = fscanf(fid, '%c', nbDatag-21);
-
-            EM_InstallationStop.ETX(ii)                             = fread(fid,1,'uint8');
-            EM_InstallationStop.CheckSum(ii)                        = fread(fid,1,'uint16');
-
+            % 1 byte for 1 character.
+            EM_InstallationStop.ASCIIData{i105}                       = fscanf(fid, '%c', nbDatag-21);
+            
+            EM_InstallationStop.ETX(i105)                             = fread(fid,1,'uint8');
+            EM_InstallationStop.CheckSum(i105)                        = fread(fid,1,'uint16');
+            
             % ETX check
-            if EM_InstallationStop.ETX(ii)~=3
+            if EM_InstallationStop.ETX(i105)~=3
                 error('wrong ETX value (EM_InstallationStop)');
             end
             
-            % file information
-            if nargout
-                kk = kk+1;
-                ALLfileinfo.datagramtypenumber(kk,1) = typeDatag;
-                ALLfileinfo.datagramtype(kk,1) = {'INSTALLATION PARAMETERS -  STOP (105, 69H)'};
-                ALLfileinfo.parsedstatus(kk,1) = 1;
-                ALLfileinfo.datagramcounter(kk,1) = ii;
-                ALLfileinfo.datagramsize(kk,1) = nbDatag;
-                ALLfileinfo.synccounter(kk,1) = syncn;
-            end
-            
-        case 107 % WATER COLUMN DATAGRAM (6BH)
-            
-            % datagrams counter
-            if ~exist('EM_WaterColumn'), ii=1; else ii=size(EM_WaterColumn.TypeOfDatagram,2)+1; end
+            % confirm parsing
+            parsed = 1;
 
+        case 107
+            
+            datagTypeText = 'WATER COLUMN DATAGRAM (6BH)';
+            
+            % counter for this type of datagram
+            try i107=i107+1; catch, i107=1; end
+            counter = i107;
+            
             % parsing
-            EM_WaterColumn.NumberOfBytesInDatagram(ii)           = nbDatag;
-            EM_WaterColumn.STX(ii)                               = stxDatag;
-            EM_WaterColumn.TypeOfDatagram(ii)                    = typeDatag;
-            EM_WaterColumn.EMModelNumber(ii)                     = emNumber;
-            EM_WaterColumn.Date(ii)                              = fread(fid,1,'uint32');
-            EM_WaterColumn.TimeSinceMidnightInMilliseconds(ii)   = fread(fid,1,'uint32');
-            EM_WaterColumn.PingCounter(ii)                       = fread(fid,1,'uint16');
-            EM_WaterColumn.SystemSerialNumber(ii)                = fread(fid,1,'uint16');
-            EM_WaterColumn.NumberOfDatagrams(ii)                 = fread(fid,1,'uint16');
-            EM_WaterColumn.DatagramNumbers(ii)                   = fread(fid,1,'uint16');
-            EM_WaterColumn.NumberOfTransmitSectors(ii)           = fread(fid,1,'uint16'); %Ntx 
-            EM_WaterColumn.TotalNumberOfReceiveBeams(ii)         = fread(fid,1,'uint16');
-            EM_WaterColumn.NumberOfBeamsInThisDatagram(ii)       = fread(fid,1,'uint16'); %Nrx
-            EM_WaterColumn.SoundSpeed(ii)                        = fread(fid,1,'uint16'); %SS 
-            EM_WaterColumn.SamplingFrequency(ii)                 = fread(fid,1,'uint32'); %SF
-            EM_WaterColumn.TXTimeHeave(ii)                       = fread(fid,1,'int16');
-            EM_WaterColumn.TVGFunctionApplied(ii)                = fread(fid,1,'uint8'); %X
-            EM_WaterColumn.TVGOffset(ii)                         = fread(fid,1,'int8'); %C
-            EM_WaterColumn.ScanningInfo(ii)                      = fread(fid,1,'uint8');
-            EM_WaterColumn.Spare1(ii)                            = fread(fid,1,'uint8');
-            EM_WaterColumn.Spare2(ii)                            = fread(fid,1,'uint8');
-            EM_WaterColumn.Spare3(ii)                            = fread(fid,1,'uint8');
+            EM_WaterColumn.NumberOfBytesInDatagram(i107)           = nbDatag;
+            EM_WaterColumn.STX(i107)                               = stxDatag;
+            EM_WaterColumn.TypeOfDatagram(i107)                    = datagTypeNumber;
+            EM_WaterColumn.EMModelNumber(i107)                     = emNumber;
+            EM_WaterColumn.Date(i107)                              = date;
+            EM_WaterColumn.TimeSinceMidnightInMilliseconds(i107)   = timeSinceMidnightInMilliseconds;
+            EM_WaterColumn.PingCounter(i107)                       = number;
+            EM_WaterColumn.SystemSerialNumber(i107)                = systemSerialNumber;
+            
+            EM_WaterColumn.NumberOfDatagrams(i107)                 = fread(fid,1,'uint16');
+            EM_WaterColumn.DatagramNumbers(i107)                   = fread(fid,1,'uint16');
+            EM_WaterColumn.NumberOfTransmitSectors(i107)           = fread(fid,1,'uint16'); %Ntx
+            EM_WaterColumn.TotalNumberOfReceiveBeams(i107)         = fread(fid,1,'uint16');
+            EM_WaterColumn.NumberOfBeamsInThisDatagram(i107)       = fread(fid,1,'uint16'); %Nrx
+            EM_WaterColumn.SoundSpeed(i107)                        = fread(fid,1,'uint16'); %SS
+            EM_WaterColumn.SamplingFrequency(i107)                 = fread(fid,1,'uint32'); %SF
+            EM_WaterColumn.TXTimeHeave(i107)                       = fread(fid,1,'int16');
+            EM_WaterColumn.TVGFunctionApplied(i107)                = fread(fid,1,'uint8'); %X
+            EM_WaterColumn.TVGOffset(i107)                         = fread(fid,1,'int8'); %C
+            EM_WaterColumn.ScanningInfo(i107)                      = fread(fid,1,'uint8');
+            EM_WaterColumn.Spare1(i107)                            = fread(fid,1,'uint8');
+            EM_WaterColumn.Spare2(i107)                            = fread(fid,1,'uint8');
+            EM_WaterColumn.Spare3(i107)                            = fread(fid,1,'uint8');
             % repeat cycle #1: Ntx entries of 6 bits
-                temp = ftell(fid);
-                C = 6;
-                Ntx = EM_WaterColumn.NumberOfTransmitSectors(ii);
-                EM_WaterColumn.TiltAngle{ii}                     = fread(fid,Ntx,'int16',C-2);
-                fseek(fid,temp+2,'bof'); % to next data type       
-                EM_WaterColumn.CenterFrequency{ii}               = fread(fid,Ntx,'uint16',C-2);
-                fseek(fid,temp+4,'bof'); % to next data type
-                EM_WaterColumn.TransmitSectorNumber{ii}          = fread(fid,Ntx,'uint8',C-1);
-                fseek(fid,temp+5,'bof'); % to next data type
-                EM_WaterColumn.Spare{ii}                         = fread(fid,Ntx,'uint8',C-1);
-                fseek(fid,1-C,'cof'); % we need to come back after last jump
-            % repeat cycle #2: Nrx entries of a possibly variable number of bits. Using a for loop   
-            Nrx = EM_WaterColumn.NumberOfBeamsInThisDatagram(ii);
+            temp = ftell(fid);
+            C = 6;
+            Ntx = EM_WaterColumn.NumberOfTransmitSectors(i107);
+            EM_WaterColumn.TiltAngle{i107}                     = fread(fid,Ntx,'int16',C-2);
+            fseek(fid,temp+2,'bof'); % to next data type
+            EM_WaterColumn.CenterFrequency{i107}               = fread(fid,Ntx,'uint16',C-2);
+            fseek(fid,temp+4,'bof'); % to next data type
+            EM_WaterColumn.TransmitSectorNumber{i107}          = fread(fid,Ntx,'uint8',C-1);
+            fseek(fid,temp+5,'bof'); % to next data type
+            EM_WaterColumn.Spare{i107}                         = fread(fid,Ntx,'uint8',C-1);
+            fseek(fid,1-C,'cof'); % we need to come back after last jump
+            % repeat cycle #2: Nrx entries of a possibly variable number of bits. Using a for loop
+            Nrx = EM_WaterColumn.NumberOfBeamsInThisDatagram(i107);
             Ns = nan(1,Nrx);
             for jj=1:Nrx
-                EM_WaterColumn.BeamPointingAngle{ii}(jj)             = fread(fid,1,'int16');
-                EM_WaterColumn.StartRangeSampleNumber{ii}(jj)        = fread(fid,1,'uint16');
-                EM_WaterColumn.NumberOfSamples{ii}(jj)               = fread(fid,1,'uint16'); %Ns
-                EM_WaterColumn.DetectedRangeInSamples{ii}(jj)        = fread(fid,1,'uint16'); %DR
-                EM_WaterColumn.TransmitSectorNumber2{ii}(jj)         = fread(fid,1,'uint8');
-                EM_WaterColumn.BeamNumber{ii}(jj)                    = fread(fid,1,'uint8');
-                Ns(jj) = EM_WaterColumn.NumberOfSamples{ii}(jj);
-                EM_WaterColumn.SampleAmplitude{ii}{jj}               = fread(fid,Ns(jj),'int8');
+                EM_WaterColumn.BeamPointingAngle{i107}(jj)             = fread(fid,1,'int16');
+                EM_WaterColumn.StartRangeSampleNumber{i107}(jj)        = fread(fid,1,'uint16');
+                EM_WaterColumn.NumberOfSamples{i107}(jj)               = fread(fid,1,'uint16'); %Ns
+                EM_WaterColumn.DetectedRangeInSamples{i107}(jj)        = fread(fid,1,'uint16'); %DR
+                EM_WaterColumn.TransmitSectorNumber2{i107}(jj)         = fread(fid,1,'uint8');
+                EM_WaterColumn.BeamNumber{i107}(jj)                    = fread(fid,1,'uint8');
+                Ns(jj) = EM_WaterColumn.NumberOfSamples{i107}(jj);
+                EM_WaterColumn.SampleAmplitude{i107}{jj}               = fread(fid,Ns(jj),'int8');
             end
             % "spare byte if required to get even length (always 0 if used)"
             if floor((Nrx*10+sum(Ns))/2) == (Nrx*10+sum(Ns))/2
                 % even so far, since ETX is 1 byte, add a spare here
-                EM_WaterColumn.Spare4(ii)                            = fread(fid,1,'uint8');
+                EM_WaterColumn.Spare4(i107)                            = fread(fid,1,'uint8');
             else
                 % odd so far, since ETX is 1 bytes, no spare
-                EM_WaterColumn.Spare4(ii) = NaN;
+                EM_WaterColumn.Spare4(i107) = NaN;
             end
-            EM_WaterColumn.ETX(ii)                               = fread(fid,1,'uint8');
-            EM_WaterColumn.CheckSum(ii)                          = fread(fid,1,'uint16');
+            EM_WaterColumn.ETX(i107)                               = fread(fid,1,'uint8');
+            EM_WaterColumn.CheckSum(i107)                          = fread(fid,1,'uint16');
             
             % ETX check
-            if EM_WaterColumn.ETX(ii)~=3,
+            if EM_WaterColumn.ETX(i107)~=3,
                 error('wrong ETX value (EM_WaterColumn)');
             end
             
-            % file information
-            if nargout
-                kk = kk+1;
-                ALLfileinfo.datagramtypenumber(kk,1) = typeDatag;
-                ALLfileinfo.datagramtype(kk,1) = {'WATER COLUMN DATAGRAM (107, 6BH)'};
-                ALLfileinfo.parsedstatus(kk,1) = 1;
-                ALLfileinfo.datagramcounter(kk,1) = ii;
-                ALLfileinfo.datagramsize(kk,1) = nbDatag;
-                ALLfileinfo.synccounter(kk,1) = syncn;
-            end
-
-        case 110 % NETWORK ATTITUDE VELOCITY DATAGRAM 110 (6EH)
-
-            % datagrams counter
-            if ~exist('EM_NetworkAttitude'), ii=1; else ii=size(EM_NetworkAttitude.TypeOfDatagram,2)+1; end
-
+            % confirm parsing
+            parsed = 1;
+            
+        case 110
+            
+            datagTypeText = 'NETWORK ATTITUDE VELOCITY DATAGRAM 110 (6EH)';
+            
+            % counter for this type of datagram
+            try i110=i110+1; catch, i110=1; end
+            counter = i110;
+            
             % parsing
-            EM_NetworkAttitude.NumberOfBytesInDatagram(ii)                    = nbDatag;
-            EM_NetworkAttitude.STX(ii)                                        = stxDatag;
-            EM_NetworkAttitude.TypeOfDatagram(ii)                             = typeDatag;
-            EM_NetworkAttitude.EMModelNumber(ii)                              = emNumber;
-            EM_NetworkAttitude.Date(ii)                                       = fread(fid,1,'uint32');
-            EM_NetworkAttitude.TimeSinceMidnightInMilliseconds(ii)            = fread(fid,1,'uint32');
-            EM_NetworkAttitude.NetworkAttitudeCounter(ii)                     = fread(fid,1,'uint16');
-            EM_NetworkAttitude.SystemSerialNumber(ii)                         = fread(fid,1,'uint16');          
-            EM_NetworkAttitude.NumberOfEntries(ii)                            = fread(fid,1,'uint16'); %N
-            EM_NetworkAttitude.SensorSystemDescriptor(ii)                     = fread(fid,1,'int8'); 
-            EM_NetworkAttitude.Spare(ii)                                      = fread(fid,1,'uint8'); 
+            EM_NetworkAttitude.NumberOfBytesInDatagram(i110)                    = nbDatag;
+            EM_NetworkAttitude.STX(i110)                                        = stxDatag;
+            EM_NetworkAttitude.TypeOfDatagram(i110)                             = datagTypeNumber;
+            EM_NetworkAttitude.EMModelNumber(i110)                              = emNumber;
+            EM_NetworkAttitude.Date(i110)                                       = date;
+            EM_NetworkAttitude.TimeSinceMidnightInMilliseconds(i110)            = timeSinceMidnightInMilliseconds;
+            EM_NetworkAttitude.NetworkAttitudeCounter(i110)                     = number;
+            EM_NetworkAttitude.SystemSerialNumber(i110)                         = systemSerialNumber;
+            
+            EM_NetworkAttitude.NumberOfEntries(i110)                            = fread(fid,1,'uint16'); %N
+            EM_NetworkAttitude.SensorSystemDescriptor(i110)                     = fread(fid,1,'int8');
+            EM_NetworkAttitude.Spare(i110)                                      = fread(fid,1,'uint8');
             % repeat cycle: N entries of a variable number of bits. Using a for loop
-            N = EM_NetworkAttitude.NumberOfEntries(ii);
+            N = EM_NetworkAttitude.NumberOfEntries(i110);
             Nx = nan(1,N);
             for jj=1:N
-                EM_NetworkAttitude.TimeInMillisecondsSinceRecordStart{ii}(jj)     = fread(fid,1,'uint16');
-                EM_NetworkAttitude.Roll{ii}(jj)                                   = fread(fid,1,'int16');
-                EM_NetworkAttitude.Pitch{ii}(jj)                                  = fread(fid,1,'int16');
-                EM_NetworkAttitude.Heave{ii}(jj)                                  = fread(fid,1,'int16');
-                EM_NetworkAttitude.Heading{ii}(jj)                                = fread(fid,1,'uint16');
-                EM_NetworkAttitude.NumberOfBytesInInputDatagrams{ii}(jj)          = fread(fid,1,'uint8'); %Nx
-                Nx(jj) = EM_NetworkAttitude.NumberOfBytesInInputDatagrams{ii}(jj);
-                EM_NetworkAttitude.NetworkAttitudeInputDatagramAsReceived{ii}{jj} = fread(fid,Nx(jj),'uint8');
+                EM_NetworkAttitude.TimeInMillisecondsSinceRecordStart{i110}(jj)     = fread(fid,1,'uint16');
+                EM_NetworkAttitude.Roll{i110}(jj)                                   = fread(fid,1,'int16');
+                EM_NetworkAttitude.Pitch{i110}(jj)                                  = fread(fid,1,'int16');
+                EM_NetworkAttitude.Heave{i110}(jj)                                  = fread(fid,1,'int16');
+                EM_NetworkAttitude.Heading{i110}(jj)                                = fread(fid,1,'uint16');
+                EM_NetworkAttitude.NumberOfBytesInInputDatagrams{i110}(jj)          = fread(fid,1,'uint8'); %Nx
+                Nx(jj) = EM_NetworkAttitude.NumberOfBytesInInputDatagrams{i110}(jj);
+                EM_NetworkAttitude.NetworkAttitudeInputDatagramAsReceived{i110}{jj} = fread(fid,Nx(jj),'uint8');
             end
             % "spare byte if required to get even length (always 0 if used)"
             if floor((N*11+sum(Nx))/2) == (N*11+sum(Nx))/2
                 % even so far, since ETX is 1 byte, add a spare here
-                EM_NetworkAttitude.Spare2(ii)                                    = fread(fid,1,'uint8');
+                EM_NetworkAttitude.Spare2(i110)                                    = fread(fid,1,'uint8');
             else
                 % odd so far, since ETX is 1 bytes, no spare
-                EM_NetworkAttitude.Spare2(ii) = NaN;
+                EM_NetworkAttitude.Spare2(i110) = NaN;
             end
-            EM_NetworkAttitude.ETX(ii)                                           = fread(fid,1,'uint8');
-            EM_NetworkAttitude.CheckSum(ii)                                      = fread(fid,1,'uint16');
-
+            EM_NetworkAttitude.ETX(i110)                                           = fread(fid,1,'uint8');
+            EM_NetworkAttitude.CheckSum(i110)                                      = fread(fid,1,'uint16');
+            
             % ETX check
-            if EM_NetworkAttitude.ETX(ii)~=3
+            if EM_NetworkAttitude.ETX(i110)~=3
                 error('wrong ETX value (EM_NetworkAttitude)');
             end
             
-            % file information
-            if nargout
-                kk = kk+1;
-                ALLfileinfo.datagramtypenumber(kk,1) = typeDatag;
-                ALLfileinfo.datagramtype(kk,1) = {'NETWORK ATTITUDE VELOCITY DATAGRAM 110 (110, 6EH)'};
-                ALLfileinfo.parsedstatus(kk,1) = 1;
-                ALLfileinfo.datagramcounter(kk,1) = ii;
-                ALLfileinfo.datagramsize(kk,1) = nbDatag;
-                ALLfileinfo.synccounter(kk,1) = syncn;
-            end
-
+            % confirm parsing
+            parsed = 1;
+            
         otherwise
-
-            % typeDatag not recognized yet
-           
-            % file information
-            if nargout
-                kk = kk+1;
-                ALLfileinfo.datagramtypenumber(kk,1) = typeDatag;
-                ALLfileinfo.datagramtype(kk,1) = {sprintf('NOT SUPPORTED (%i, %sH)',typeDatag, dec2hex(typeDatag))};
-                ALLfileinfo.parsedstatus(kk,1) = 0;
-                ALLfileinfo.datagramcounter(kk,1) = NaN;
-                ALLfileinfo.datagramsize(kk,1) = nbDatag;
-                ALLfileinfo.synccounter(kk,1) = syncn;
-            end
             
+            % this datagTypeNumber is not recognized yet
+            datagTypeText = {sprintf('UNKNOWN DATAGRAM (%sH)',dec2hex(datagTypeNumber))};
+               
     end
-            
+    
+    % write output ALLfileinfo
+    if nargout
+        kk = kk+1;
+        ALLfileinfo.datagNumberInFile(kk,1) = kk;
+        ALLfileinfo.datagPositionInFile(kk,1) = pif;
+        ALLfileinfo.datagTypeNumber(kk,1) = datagTypeNumber;
+        ALLfileinfo.datagTypeText{kk,1} = datagTypeText;
+        ALLfileinfo.parsed(kk,1) = parsed;
+        ALLfileinfo.counter(kk,1) = counter;
+        ALLfileinfo.number(kk,1) = number;
+        ALLfileinfo.size(kk,1) = nbDatag;
+        ALLfileinfo.syncCounter(kk,1) = syncCounter;
+        ALLfileinfo.emNumber(kk,1) = emNumber;
+        ALLfileinfo.date(kk,1) = date;
+        ALLfileinfo.timeSinceMidnightInMilliseconds(kk,1) = timeSinceMidnightInMilliseconds;
+    end
+    
     % reinitialize synccounter
-    syncn = 0;
+    syncCounter = 0;
     
     % go to end of datagram
-    fseek(fid,point+4+nbDatag,-1);     
-
+    fseek(fid,pif+4+nbDatag,-1);
+    
 end
 
 

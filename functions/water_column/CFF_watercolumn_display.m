@@ -3,30 +3,52 @@ function [h,F] = CFF_watercolumn_display(fData, varargin)
 %
 % DESCRIPTION
 %
-% display watercolumn data
+% Display Multibeam watercolumn data in various ways.
 %
-% INPUT VARIABLES
+% REQUIRED INPUT ARGUMENTS
+% 'fData': the multibeam data structure
 %
-%varargin{1} is a string indicating which data in fData to grab
-%'original' or 'L1'. OR the data to display
-
-%varargin{2}: display type 'flat', 'wedge' or 'projected'
+% OPTIONAL INPUT ARGUMENTS
 %
-% varargin{3}: filename for movie creation
-
-
+% 'data': string indicating which data in fData to grab: 'original'
+% (default) or 'L1'. Can be overwritten by inputting "otherData". 
+%
+% 'displayType': string indicating type of display: 'flat' (default),
+% 'wedge' or 'projected'.
+%
+% 'movieFile': string indicating filename for movie creation. By default an
+% empty string to mean no movie is to be made.
+%
+% 'otherData': array of numbers to be displayed instead of the original or
+% L1 data. Used in case of tests for new types of corrections.
+%
+% 'pings': vector of numbers indicating which pings to be displayed. If
+% more than one, the result will be an animation.
+%
+% 'bottomDetectDisplay': string indicating whether to display the bottom
+% detect in the data or not: 'no' (default) or 'yes'.  
+%
+% 'waterColumnTargets': array of points to be displayed ontop of
+% watercolumn data. Must be a table with Easting, Northing, Height, ping,
+% beam, range. 
+%
 % OUTPUT VARIABLES
+% 'h': figure handle
 %
-%   h: figure handle
-%   F: movie frames
+% 'F': movie frames
 %
 % RESEARCH NOTES
 %
+% - display contents of the input parser?
+%
 % NEW FEATURES
 %
-% - v0.1:
-%   - first version.
+% 2015-09-29: updating description after changing varargin management to
+% inputparser
+% 2014-04-25: first version
+%
 % EXAMPLES
+%
 % % The following are ALL equivalent: display original data, all pings, flat, no bottom detect, no movie
 % CFF_watercolumn_display(fData); 
 % CFF_watercolumn_display(fData,'original');
@@ -35,31 +57,30 @@ function [h,F] = CFF_watercolumn_display(fData, varargin)
 % CFF_watercolumn_display(fData,'data','original','pings',NaN);
 % CFF_watercolumn_display(fData,'data','original','pings',NaN,'displayType','flat');
 %
-% Let's make things a little different: testing all disaply types with
-% bottom detect
+% % All 3 display types with bottom detect ON
 % CFF_watercolumn_display(fData,'data','L1','displayType','flat','bottomDetectDisplay','yes');
 % CFF_watercolumn_display(fData,'data','L1','displayType','wedge','bottomDetectDisplay','yes');
 % CFF_watercolumn_display(fData,'data','L1','displayType','projected','bottomDetectDisplay','yes');
 %
-% % all good now testing movie creation in flat mode
+% % Movie creation in flat mode
 % CFF_watercolumn_display(fData,'data','L1','displayType','flat','bottomDetectDisplay','yes','movieFile','testmovie');
 %
-% % testing other data:
+% % USe of 'otherData'
 % otherM = fData.WC_PBS_SampleAmplitudes + 50;
 % CFF_watercolumn_display(fData,'otherData',otherM);
 %
-% % all old display work. Check the old order of inputs work
-% [h,F] = CFF_watercolumn_display(fData, 'original','flat','test')
+% % Old varargin management should still work.
+% [h,F] = CFF_watercolumn_display(fData, 'original','flat','testmovie')
 %
-% % ok now test the new inputs:
+% % Finally, testing water column targets
 % CFF_watercolumn_display(fData,'data','L1','displayType','flat','bottomDetectDisplay','yes','waterColumnTargets',kelp);
 % CFF_watercolumn_display(fData,'data','L1','displayType','wedge','bottomDetectDisplay','yes','waterColumnTargets',kelp);
 % CFF_watercolumn_display(fData,'data','L1','displayType','projected','bottomDetectDisplay','yes','waterColumnTargets',kelp);
 %
 %%%
 % Alex Schimel, Deakin University
-% Version 0.1 (25-Apr-2014)
 %%%
+
 
 %% INPUT PARSER
 
@@ -68,7 +89,7 @@ p = inputParser;
 % 'fData', the multibeam data structure (required)
 addRequired(p,'fData',@isstruct);
 
-% 'data' (originally varargin{1}) is an optional string indicating which data in
+% 'data' is an optional string indicating which data in
 % fData to grab: 'original' (default) or 'L1'. Can be overwritten by
 % inputting "otherData". 
 arg = 'data';
@@ -76,13 +97,13 @@ defaultArg = 'original';
 checkArg = @(x) any(validatestring(x,{'original','L1'})); % valid arguments for optional check
 addOptional(p,arg,defaultArg,checkArg);
 
-% 'displayType' (originally varargin{2}) is an optional string indicating type of display: 'flat' (default), 'wedge' or 'projected'
+% 'displayType' is an optional string indicating type of display: 'flat' (default), 'wedge' or 'projected'
 arg = 'displayType';
 defaultArg = 'flat';
 checkArg = @(x) any(validatestring(x,{'flat', 'wedge','projected'})); % valid arguments for optional check
 addOptional(p,arg,defaultArg,checkArg);
 
-% 'movieFile' (originally varargin{3}) is an optional string indicating filename for
+% 'movieFile' is an optional string indicating filename for
 % movie creation. By default an empty string to mean no movie is to be
 % made.
 arg = 'movieFile';
@@ -309,8 +330,8 @@ if ~isempty(p.Results.movieFile)
 end
 
 
-
-
+% OLD CODE
+%
 % figure; plot(SeedsAcrossDist,SeedsDownDist,'.')
 % axis equal
 % hold on
