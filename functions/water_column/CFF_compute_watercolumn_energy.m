@@ -78,8 +78,8 @@ switch method
         
         kelp = varargin{1};
         
-        M = mean(exp(kelp(:,4)./20));
-        S = sum(exp(kelp(:,4)./20));
+        M = mean(10.^(kelp(:,7)./20));
+        S = sum(10.^(kelp(:,7)./20));
         
         
     otherwise

@@ -4,7 +4,7 @@ function [fData] = CFF_filter_watercolumn(fData,varargin)
 % DESCRIPTION
 %
 % dataset have three dimensions: ping #, beam # and sample #.
-
+%
 % calculating the average backcatter level across samples, would allow
 % us to spot the beams that have constantly higher or lower energy in a
 % given ping. Doing this only for samples in the watercolumn would allow us
@@ -47,24 +47,12 @@ function [fData] = CFF_filter_watercolumn(fData,varargin)
 %
 % OUTPUT VARIABLES
 %
-% -
+% 
 %
 % RESEARCH NOTES
 %
-% -
+% MORE PROCESSING ideas:
 %
-% NEW FEATURES
-%
-% - v0.1:
-%   - first version. Code adapted from old processing scripts
-%
-%%%
-% Alex Schimel, Deakin University
-% Version 0.1 (26-Feb-2014)
-%%%
-
-% PROCESSING ideas:
-
 % the circular artifact on the bottom is due to specular reflection
 % affecting all beams.
 % -> remove in each ping by averaging the level at a given range across
@@ -74,7 +62,7 @@ function [fData] = CFF_filter_watercolumn(fData,varargin)
 % same range so that would need some form of heave compensation. For heave
 % compensation, maybe use the mean calculated on each ping and line up the
 % highest return (specular).
-
+%
 % now when the specular artefacts are gone, what of the level being uneven
 % across the swath in the water column? A higher level on outer beams that
 % seems constant through pings? A higher level on closer ranges?
@@ -86,7 +74,15 @@ function [fData] = CFF_filter_watercolumn(fData,varargin)
 % different steering angles, hence different beamwidths.
 % -> Average not for each beam, but for each steering angle. Sample should
 % be fine.
-
+% 
+%
+% NEW FEATURES
+%
+% - 2014-02-26: first version. Code adapted from old processing scripts
+%
+%%%
+% Alex Schimel, Deakin University
+%%%
 
 
 %% Extract needed data
@@ -212,21 +208,22 @@ switch method_spec
             %stdRefLevel = std(nadirSamples);
             
             % statistical compensation:
-            % Corr2a(ip,:,:) =  thisPing - meanAcrossBeams3; % simple mean removal, like my first paper
-            Corr2b(ip,:,:) =  thisPing - meanAcrossBeams3 + meanRefLevel; % adding mean reference, like everyone does (a in Parnum)
+            Corr2a(ip,:,:) =  thisPing - meanAcrossBeams3; % simple mean removal, like my first paper
+            % Corr2b(ip,:,:) =  thisPing - meanAcrossBeams3 + meanRefLevel; % adding mean reference, like everyone does (a in Parnum)
             % Corr2c(ip,:,:) = (thisPing - meanAcrossBeams3)./stdAcrossBeams3 + meanRefLevel; % including normalization for std (b in Parnum)
             % Corr2d(ip,:,:) = ((thisPing - meanAcrossBeams3)./stdAcrossBeams3).*stdRefLevel + meanRefLevel; % going further: re-introducing a reference std
             
         end
         
         % test display
-        % CFF_watercolumn_display(fData,Corr2a,'flat')
-        % CFF_watercolumn_display(fData,Corr2b,'flat')
-        % CFF_watercolumn_display(fData,Corr2c,'flat')
-        % CFF_watercolumn_display(fData,Corr2d,'flat')
+        % CFF_watercolumn_display(fData,'otherData',Corr2a,'displayType','flat')
+        % CFF_watercolumn_display(fData,'otherData',Corr2b,'displayType','flat')
+        % CFF_watercolumn_display(fData,'otherData',Corr2c,'displayType','flat')
+        % CFF_watercolumn_display(fData,'otherData',Corr2d,'displayType','flat')
         
         % keep as L1
-        L1 = Corr2b;
+        L1 = Corr2a;
+        % L1 = Corr2b;
         
     case 3
         
@@ -296,12 +293,17 @@ switch method_bot
             end
         end
         b1 = round(CFF_inpaint_nans(b1));
+        % because inpaint interpolation can yield numbers below zeros in
+        % areas where there are a lot of nans:
+        b1(b1<1)=2;
         
-        %%display
-        %%figure;
-        %%subplot(221); imagesc(b0); colorbar; title('raw bottom')
-        %%subplot(222); imagesc(b1); colorbar; title('filtered bottom')
-        %%subplot(223); imagesc(b1-b0); colorbar; title('filtered-raw')
+        %display
+%         figure;
+%         minb=min([b0(:);b1(:)]);
+%         maxb=max([b0(:);b1(:)]);
+%         subplot(221); imagesc(b0); colorbar; title('range of raw bottom'); caxis([minb maxb])
+%         subplot(222); imagesc(b1); colorbar; title('range of filtered bottom'); caxis([minb maxb])
+%         subplot(223); imagesc(b1-b0); colorbar; title('filtered-raw')
         
     case 2
         
@@ -372,9 +374,8 @@ if ~isinf(remove_bottomrange)
 end
 
 
-%% FINAL SAVING L1
+%% SAVING L1
 fData.X_PBS_L1 = L1;
-
 
 
 % old code to adapt:
