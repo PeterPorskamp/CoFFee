@@ -3,39 +3,41 @@ function [h,F] = CFF_watercolumn_display(fData, varargin)
 %
 % DESCRIPTION
 %
-% Display Multibeam watercolumn data in various ways.
+% Displays Multibeam watercolumn data in various ways.
 %
 % REQUIRED INPUT ARGUMENTS
-% 'fData': the multibeam data structure
+%
+% - 'fData': the multibeam data structure
 %
 % OPTIONAL INPUT ARGUMENTS
 %
-% 'data': string indicating which data in fData to grab: 'original'
+% - 'data': string indicating which data in fData to grab: 'original'
 % (default) or 'L1'. Can be overwritten by inputting "otherData". 
 %
-% 'displayType': string indicating type of display: 'flat' (default),
+% - 'displayType': string indicating type of display: 'flat' (default),
 % 'wedge' or 'projected'.
 %
-% 'movieFile': string indicating filename for movie creation. By default an
-% empty string to mean no movie is to be made.
+% - 'movieFile': string indicating filename for movie creation. By default
+% an empty string to mean no movie is to be made.
 %
-% 'otherData': array of numbers to be displayed instead of the original or
-% L1 data. Used in case of tests for new types of corrections.
+% - 'otherData': array of numbers to be displayed instead of the original
+% or L1 data. Used in case of tests for new types of corrections.
 %
-% 'pings': vector of numbers indicating which pings to be displayed. If
+% - 'pings': vector of numbers indicating which pings to be displayed. If
 % more than one, the result will be an animation.
 %
-% 'bottomDetectDisplay': string indicating whether to display the bottom
+% - 'bottomDetectDisplay': string indicating whether to display the bottom
 % detect in the data or not: 'no' (default) or 'yes'.  
 %
-% 'waterColumnTargets': array of points to be displayed ontop of
-% watercolumn data. Must be a table with Easting, Northing, Height, ping,
-% beam, range. 
+% - 'waterColumnTargets': array of points to be displayed ontop of
+% watercolumn data. Must be a table with columns Easting, Northing, Height,
+% ping, beam, range. 
 %
 % OUTPUT VARIABLES
-% 'h': figure handle
 %
-% 'F': movie frames
+% - 'h': figure handle
+%
+% - 'F': movie frames
 %
 % RESEARCH NOTES
 %

@@ -94,7 +94,7 @@ if nargin>2
     ellips=varargin{2};
 else
     ellips = 'wgs84';
-    fprintf('ellips not specified. Using ''wgs84''...\n');
+    %fprintf('ellips not specified. Using ''wgs84''...\n');
 end
 
 % varargin{3}: TM projection for CFF_ll2tm conversion
@@ -105,7 +105,7 @@ else
     firstPosLon = fData.Po_D1_Longitude(1)./10000000;
     [dump1, dump2, dump3, dump4, tmproj] = CFF_ll2tm(firstPosLon,firstPosLat,ellips,'utm');
     tmproj = ['utm' tmproj];
-    fprintf(['tmproj not specified. Using ''' tmproj '''...\n']);
+    %fprintf(['tmproj not specified. Using ''' tmproj '''...\n']);
 end
 
 % varargin{?}: datum conversion?
@@ -116,7 +116,7 @@ if nargin==5
     navLat = varargin{4};
 else
     navLat=0;
-    fprintf('navLat not specified. Using 0...\n');
+    %fprintf('navLat not specified. Using 0...\n');
 end
 
 
