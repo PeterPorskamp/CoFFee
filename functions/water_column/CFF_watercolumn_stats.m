@@ -58,14 +58,14 @@ stats.X_PB_L0_all_min = min(L0,[],3,'omitnan');
 stats.X_PB_L0_all_max = max(L0,[],3,'omitnan');
 stats.X_PB_L0_all_mean = mean(L0,3,'omitnan');
 stats.X_PB_L0_all_median = median(L0,3,'omitnan');
-stats.X_PB_L0_all_std = std(L0,3,'omitnan');
+stats.X_PB_L0_all_std = std(L0,0,3,'omitnan');
 
 % L1 stats across all samples, per ping and per beam
 stats.X_PB_L1_all_min = min(L1,[],3,'omitnan');
 stats.X_PB_L1_all_max = max(L1,[],3,'omitnan');
 stats.X_PB_L1_all_mean = mean(L1,3,'omitnan');
 stats.X_PB_L1_all_median = median(L1,3,'omitnan');
-stats.X_PB_L1_all_std = std(L1,3,'omitnan');
+stats.X_PB_L1_all_std = std(L1,0,3,'omitnan');
 
 % L0 stats across all samples, per ping
 stats.X_P_L0_all_min  = min(stats.X_PB_L0_all_min,[],2,'omitnan');
@@ -82,7 +82,7 @@ stats.X_L0_all_min = min(L0(:),[],'omitnan');
 stats.X_L0_all_max = max(L0(:),[],'omitnan');
 stats.X_L0_all_mean = mean(L0(:),'omitnan');
 stats.X_L0_all_median = median(L0(:),'omitnan');
-stats.X_L0_all_std = std(L0(:),'omitnan');
+stats.X_L0_all_std = std(L0(:),0,'omitnan');
 stats.X_L0_all_90perc = CFF_invpercentile(L0(:),90);
 stats.X_L0_all_95perc = CFF_invpercentile(L0(:),95);
 stats.X_L0_all_99perc = CFF_invpercentile(L0(:),99);
@@ -93,7 +93,7 @@ stats.X_L1_all_min = min(L1(:),[],'omitnan');
 stats.X_L1_all_max = max(L1(:),[],'omitnan');
 stats.X_L1_all_mean = mean(L1(:),'omitnan');
 stats.X_L1_all_median = median(L1(:),'omitnan');
-stats.X_L1_all_std = std(L1(:),'omitnan');
+stats.X_L1_all_std = std(L1(:),0,'omitnan');
 stats.X_L1_all_90perc = CFF_invpercentile(L1(:),90);
 stats.X_L1_all_95perc = CFF_invpercentile(L1(:),95);
 stats.X_L1_all_99perc = CFF_invpercentile(L1(:),99);
@@ -112,14 +112,14 @@ stats.X_PB_L0_dirty_min = min(L0,[],3,'omitnan');
 stats.X_PB_L0_dirty_max = max(L0,[],3,'omitnan');
 stats.X_PB_L0_dirty_mean = mean(L0,3,'omitnan');
 stats.X_PB_L0_dirty_median = median(L0,3,'omitnan');
-stats.X_PB_L0_dirty_std = std(L0,3,'omitnan');
+stats.X_PB_L0_dirty_std = std(L0,0,3,'omitnan');
 
 % L1 stats across water-column ("dirty") samples, per ping and per beam
 stats.X_PB_L1_dirty_min = min(L1,[],3,'omitnan');
 stats.X_PB_L1_dirty_max = max(L1,[],3,'omitnan');
 stats.X_PB_L1_dirty_mean = mean(L1,3,'omitnan');
 stats.X_PB_L1_dirty_median = median(L1,3,'omitnan');
-stats.X_PB_L1_dirty_std = std(L1,3,'omitnan');
+stats.X_PB_L1_dirty_std = std(L1,0,3,'omitnan');
 
 % L0 stats across water-column ("dirty") samples, per ping
 stats.X_P_L0_dirty_min  = min(stats.X_PB_L0_dirty_min,[],2,'omitnan');
@@ -136,7 +136,7 @@ stats.X_L0_dirty_min = min(L0(:),[],'omitnan');
 stats.X_L0_dirty_max = max(L0(:),[],'omitnan');
 stats.X_L0_dirty_mean = mean(L0(:),'omitnan');
 stats.X_L0_dirty_median = median(L0(:),'omitnan');
-stats.X_L0_dirty_std = std(L0(:),'omitnan');
+stats.X_L0_dirty_std = std(L0(:),0,'omitnan');
 stats.X_L0_dirty_90perc = CFF_invpercentile(L0(:),90);
 stats.X_L0_dirty_95perc = CFF_invpercentile(L0(:),95);
 stats.X_L0_dirty_99perc = CFF_invpercentile(L0(:),99);
@@ -147,7 +147,7 @@ stats.X_L1_dirty_min = min(L1(:),[],'omitnan');
 stats.X_L1_dirty_max = max(L1(:),[],'omitnan');
 stats.X_L1_dirty_mean = mean(L1(:),'omitnan');
 stats.X_L1_dirty_median = median(L1(:),'omitnan');
-stats.X_L1_dirty_std = std(L1(:),'omitnan');
+stats.X_L1_dirty_std = std(L1(:),0,'omitnan');
 stats.X_L1_dirty_90perc = CFF_invpercentile(L1(:),90);
 stats.X_L1_dirty_95perc = CFF_invpercentile(L1(:),95);
 stats.X_L1_dirty_99perc = CFF_invpercentile(L1(:),99);
@@ -167,14 +167,14 @@ stats.X_PB_L0_clean_min = min(L0,[],3,'omitnan');
 stats.X_PB_L0_clean_max = max(L0,[],3,'omitnan');
 stats.X_PB_L0_clean_mean = mean(L0,3,'omitnan');
 stats.X_PB_L0_clean_median = median(L0,3,'omitnan');
-stats.X_PB_L0_clean_std = std(L0,3,'omitnan');
+stats.X_PB_L0_clean_std = std(L0,0,3,'omitnan');
 
 % L1 stats across water-column ("clean") samples, per ping and per beam
 stats.X_PB_L1_clean_min = min(L1,[],3,'omitnan');
 stats.X_PB_L1_clean_max = max(L1,[],3,'omitnan');
 stats.X_PB_L1_clean_mean = mean(L1,3,'omitnan');
 stats.X_PB_L1_clean_median = median(L1,3,'omitnan');
-stats.X_PB_L1_clean_std = std(L1,3,'omitnan');
+stats.X_PB_L1_clean_std = std(L1,0,3,'omitnan');
 
 % L0 stats across water-column ("clean") samples, per ping
 stats.X_P_L0_clean_min  = min(stats.X_PB_L0_clean_min,[],2,'omitnan');
@@ -191,7 +191,7 @@ stats.X_L0_clean_min = min(L0(:),[],'omitnan');
 stats.X_L0_clean_max = max(L0(:),[],'omitnan');
 stats.X_L0_clean_mean = mean(L0(:),'omitnan');
 stats.X_L0_clean_median = median(L0(:),'omitnan');
-stats.X_L0_clean_std = std(L0(:),'omitnan');
+stats.X_L0_clean_std = std(L0(:),0,'omitnan');
 stats.X_L0_clean_90perc = CFF_invpercentile(L0(:),90);
 stats.X_L0_clean_95perc = CFF_invpercentile(L0(:),95);
 stats.X_L0_clean_99perc = CFF_invpercentile(L0(:),99);
@@ -202,7 +202,7 @@ stats.X_L1_clean_min = min(L1(:),[],'omitnan');
 stats.X_L1_clean_max = max(L1(:),[],'omitnan');
 stats.X_L1_clean_mean = mean(L1(:),'omitnan');
 stats.X_L1_clean_median = median(L1(:),'omitnan');
-stats.X_L1_clean_std = std(L1(:),'omitnan');
+stats.X_L1_clean_std = std(L1(:),0,'omitnan');
 stats.X_L1_clean_90perc = CFF_invpercentile(L1(:),90);
 stats.X_L1_clean_95perc = CFF_invpercentile(L1(:),95);
 stats.X_L1_clean_99perc = CFF_invpercentile(L1(:),99);

@@ -99,12 +99,14 @@ PBS_beamPointingAngleRad = repmat(PB_beamPointingAngleRad,[1 1 nSamples]);
 % - Zs: up distance (positive up)
 
 % for samples:
+% SIGN CHANGE FOR COMPUTING ACROSS DISTANCE
 PBS_sampleUpDist     = -PBS_sampleRange .* cos(PBS_beamPointingAngleRad);
-PBS_sampleAcrossDist =  PBS_sampleRange .* sin(PBS_beamPointingAngleRad);
+PBS_sampleAcrossDist = -PBS_sampleRange .* sin(PBS_beamPointingAngleRad);
 
 % for bottom detection:
+% SIGN CHANGE FOR COMPUTING ACROSS DISTANCE
 PB_bottomUpDist     = -PB_bottomRange .* cos(PB_beamPointingAngleRad);
-PB_bottomAcrossDist =  PB_bottomRange .* sin(PB_beamPointingAngleRad);
+PB_bottomAcrossDist = -PB_bottomRange .* sin(PB_beamPointingAngleRad);
 
 
 
