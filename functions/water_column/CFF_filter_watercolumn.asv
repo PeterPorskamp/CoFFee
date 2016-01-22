@@ -208,8 +208,8 @@ switch method_spec
             %stdRefLevel = std(nadirSamples);
             
             % statistical compensation:
-            % Corr2a(ip,:,:) =  thisPing - meanAcrossBeams3; % simple mean removal, like my first paper
-            Corr2b(ip,:,:) =  thisPing - meanAcrossBeams3 + meanRefLevel; % adding mean reference, like everyone does (a in Parnum)
+            Corr2a(ip,:,:) =  thisPing - meanAcrossBeams3; % simple mean removal, like my first paper
+            % Corr2b(ip,:,:) =  thisPing - meanAcrossBeams3 + meanRefLevel; % adding mean reference, like everyone does (a in Parnum)
             % Corr2c(ip,:,:) = (thisPing - meanAcrossBeams3)./stdAcrossBeams3 + meanRefLevel; % including normalization for std (b in Parnum)
             % Corr2d(ip,:,:) = ((thisPing - meanAcrossBeams3)./stdAcrossBeams3).*stdRefLevel + meanRefLevel; % going further: re-introducing a reference std
             
@@ -222,8 +222,8 @@ switch method_spec
         % CFF_watercolumn_display(fData,'otherData',Corr2d,'displayType','flat')
         
         % keep as L1
-        % L1 = Corr2a;
-         L1 = Corr2b;
+        L1 = Corr2a;
+        % L1 = Corr2b;
         
     case 3
         
@@ -298,12 +298,12 @@ switch method_bot
         b1(b1<1)=2;
         
         %display
-%         figure;
-%         minb=min([b0(:);b1(:)]);
-%         maxb=max([b0(:);b1(:)]);
-%         subplot(221); imagesc(b0); colorbar; title('range of raw bottom'); caxis([minb maxb])
-%         subplot(222); imagesc(b1); colorbar; title('range of filtered bottom'); caxis([minb maxb])
-%         subplot(223); imagesc(b1-b0); colorbar; title('filtered-raw')
+        figure;
+        minb=min([b0(:);b1(:)]);
+        maxb=max([b0(:);b1(:)]);
+        subplot(221); imagesc(b0); colorbar; title('range of raw bottom'); caxis([minb maxb])
+        subplot(222); imagesc(b1); colorbar; title('range of filtered bottom'); caxis([minb maxb])
+        subplot(223); imagesc(b1-b0); colorbar; title('filtered-raw')
         
     case 2
         
