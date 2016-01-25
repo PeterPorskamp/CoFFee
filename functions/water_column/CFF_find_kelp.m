@@ -166,50 +166,9 @@ switch method
         %%
         %% PER-SLICE METHOD, STEP #1: GRID WATER COLUMN DATA
         %%
-        % PARAMS:
-        Lfield = 'X_PBS_L1'; % L2?
-        res = 0.1;  % grid resolution (in m) in the gridding of water column data
-        [gridEasting,gridNorthing,gridHeight,gridLevel,gridDensity] = CFF_grid_watercolumn(fData,Lfield,res);
-        
-        if display_flag
-            % DISPLAY GRIDDED WATERCOLUMN SLICE BY SLICE
-            HH = figure;
-            caxismin = min(gridLevel(:));
-            caxismax = max(gridLevel(:));
-            for kk=1:length(gridHeight)-1
-                cla
-                xy = gridLevel(:,:,kk);
-                
-                
-                %h = imagesc(xy);
-                %set(h,'alphadata',~isnan(xy))
-                h = pcolor(gridEasting,gridNorthing,gridLevel(:,:,kk)); shading flat
-                axis equal
-                grid on; set(gca,'layer','top');
-                CFF_nice_easting_northing
-                
-                
-                set(gca,'Ydir','normal')
-                colorbar
-                title(sprintf('slice %i/%i: %.2f m',kk,length(gridHeight)-1,gridHeight(kk)))
-                caxis([caxismin caxismax])
-                grid on
-                axis square
-                axis equal
-                axis tight
-                drawnow
-            end
-            
-            % OTHER QUICK DISPLAY
-            for ii = 30:120
-                imagesc(exp(gridLevel(:,:,ii)./20))
-                axis([157.0505  260.5491  170.7073  236.4164])
-                caxis([0 0.7])
-                colorbar
-                drawnow
-                pause(0.2)
-            end
-        end
+
+      
+
         
         
         %%

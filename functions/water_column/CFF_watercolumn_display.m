@@ -15,7 +15,8 @@ function [h,F] = CFF_watercolumn_display(fData, varargin)
 % (default) or 'L1'. Can be overwritten by inputting "otherData". 
 %
 % - 'displayType': string indicating type of display: 'flat' (default),
-% 'wedge' or 'projected'.
+% 'wedge', 'projected' or 'gridded' (this last one need the data to have
+% been gridded.) 
 %
 % - 'movieFile': string indicating filename for movie creation. By default
 % an empty string to mean no movie is to be made.
@@ -102,7 +103,7 @@ addOptional(p,arg,defaultArg,checkArg);
 % 'displayType' is an optional string indicating type of display: 'flat' (default), 'wedge' or 'projected'
 arg = 'displayType';
 defaultArg = 'flat';
-checkArg = @(x) any(validatestring(x,{'flat', 'wedge','projected'})); % valid arguments for optional check
+checkArg = @(x) any(validatestring(x,{'flat', 'wedge','projected','gridded'})); % valid arguments for optional check
 addOptional(p,arg,defaultArg,checkArg);
 
 % 'movieFile' is an optional string indicating filename for
@@ -168,6 +169,10 @@ end
 if ~isempty(p.Results.otherData)
     % overwrite with other data
     M = p.Results.otherData;
+end
+if strcmp(p.Results.displayType,'gridded')
+    % overwrite with gridded data if displayType is "gridded"
+    M = fData.X_NEH_gridLevel;
 end
 
 
@@ -312,14 +317,50 @@ switch p.Results.displayType
             title(sprintf('%s - ping %i (%i/%i)',fileName,pingCounter(ii),ii,nPings),'Interpreter','none')
             xlabel('Easting (m)')
             ylabel('Northing (m)')
-            zlabel('Height (m)')
+            zlabel('Height above datum (m)')
             CFF_nice_easting_northing
             drawnow
             if ~isempty(p.Results.movieFile)
                 F(ii) = getframe(gcf);
             end
         end
+        
+    case 'gridded'
+        
+        % grab data
+        Easting = fData.X_1E_gridEasting;
+        Northing = fData.X_N1_gridNorthing;
+        Height = fData.X_H_gridHeight;
 
+        % data bounds
+        maxEasting = max(Easting(:));
+        minEasting = min(Easting(:));
+        maxNorthing = max(Northing(:));
+        minNorthing = min(Northing(:));
+        maxHeight = max(Height(:));
+        minHeight = min(Height(:));
+        maxM = max(M(:),[],'omitnan');
+        minM = min(M(:),[],'omitnan');
+        
+        figure
+        for kk=1:length(Height)
+            cla
+            pcolor(Easting,Northing,M(:,:,kk));
+            shading flat
+            axis square
+            axis equal
+            axis tight
+            grid on; set(gca,'layer','top');
+            set(gca,'Ydir','normal')
+            caxis([minM maxM])
+            colorbar
+            CFF_nice_easting_northing
+            title(sprintf('%s - slice %i/%i - Height above datum: %.2f m',fileName,kk,length(Height),Height(kk)),'Interpreter','none')
+            xlabel('Easting (m)')
+            ylabel('Northing (m)')
+            drawnow
+        end
+        
 end
 
 % write movie

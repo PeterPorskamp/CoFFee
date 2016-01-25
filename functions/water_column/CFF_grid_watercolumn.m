@@ -1,5 +1,5 @@
-function [gridEasting,gridNorthing,gridHeight,gridLevel,gridDensity] = CFF_grid_watercolumn(fData,varargin)
-% [gridEasting,gridNorthing,gridHeight,gridLevel,gridDensity] = CFF_grid_watercolumn(in,varargin)
+function fData = CFF_grid_watercolumn(fData,varargin)
+% fData = CFF_grid_watercolumn(fData,varargin)
 %
 % DESCRIPTION
 %
@@ -78,7 +78,7 @@ numH = ceil((maxH-minH)./res)+1;
 
 % build the grids
 gridEasting  = [0:numE-1].*res + minE;
-gridNorthing = [0:numN-1].*res + minN;
+gridNorthing = [0:numN-1]'.*res + minN;
 gridHeight   = [0:numH-1].*res + minH;
 
 
@@ -114,27 +114,15 @@ end
 %% bring gridLevel back in decibels
 gridLevel = 20.*log10(gridLevel);
 
+%% saving results
+fData.X_1E_gridEasting = gridEasting;
+fData.X_N1_gridNorthing = gridNorthing;
+fData.X_H_gridHeight = gridHeight;
+fData.X_NEH_gridLevel = gridLevel;
+fData.X_NEH_gridDensity = gridDensity;
 
-%% meshgrid easting and northing for output
-[gridEasting,gridNorthing] = meshgrid(gridEasting,gridNorthing);
+%% how to meshgrid easting and northing, for reference:
+% [gridEasting,gridNorthing] = meshgrid(gridEasting,gridNorthing);
 
-% 
-% % plot for display
-% figure
-% caxismin = min(gridLevel(:));
-% caxismax = max(gridLevel(:));
-% for jj=1:10
-%     for kk=1:length(gridHeight)-1
-%         cla
-%         imagesc(gridLevel(:,:,kk));
-%         alpha(double(~isnan(gridLevel(:,:,kk))))
-%         set(gca,'Ydir','normal')
-%         caxis([caxismin caxismax])
-%         colorbar
-%         grid on
-%         axis equal 
-%         pause(0.2)
-%         drawnow
-%     end
-% end
-
+%% OR, how to meshgrid easting, northing and height, for reference:
+% [gridEasting,gridNorthing,gridHeight] = meshgrid(gridEasting,gridNorthing,gridHeight);
