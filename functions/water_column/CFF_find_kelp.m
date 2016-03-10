@@ -179,8 +179,16 @@ switch method
             for kk=1:length(gridHeight)-1
                 cla
                 xy = gridLevel(:,:,kk);
-                h = imagesc(xy);
+                
+                
+                %h = imagesc(xy);
                 %set(h,'alphadata',~isnan(xy))
+                h = pcolor(gridEasting,gridNorthing,gridLevel(:,:,kk)); shading flat
+                axis equal
+                grid on; set(gca,'layer','top');
+                CFF_nice_easting_northing
+                
+                
                 set(gca,'Ydir','normal')
                 colorbar
                 title(sprintf('slice %i/%i: %.2f m',kk,length(gridHeight)-1,gridHeight(kk)))
