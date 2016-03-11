@@ -224,7 +224,7 @@ switch method_spec
         
         % keep as L1
         % L1 = Corr2a;
-         L1 = Corr2b;
+        L1 = Corr2b;
         
     case 3
         
