@@ -84,9 +84,10 @@ function [fData] = CFF_filter_watercolumn(fData,varargin)
 % Alex Schimel, Deakin University
 %%%
 
+% random comment
 
 %% Extract needed data
-L0 = fData.WC_PBS_SampleAmplitudes ;% original level
+L0 = fData.WC_PBS_SampleAmplitudes./2;% original level divided by 2 (see kongsberg datagrams document)
 b0 = fData.WC_PB_DetectedRangeInSamples; % original bottom detect
 nPings = size(L0,1);
 nBeams = size(L0,2);

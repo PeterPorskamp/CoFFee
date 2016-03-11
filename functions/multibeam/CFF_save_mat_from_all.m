@@ -78,7 +78,7 @@ function ALLfileinfo = CFF_save_mat_from_all(ALLfile, MATfilename)
 %%%
 
 
-save(MATfilename, '-struct', 'ALLfile');
+save(MATfilename, '-struct', 'ALLfile');%'-v7.3'
 ALLfileinfo = ALLfile.info;
 
 
