@@ -96,7 +96,7 @@ addRequired(p,'fData',@isstruct);
 % inputting "otherData". 
 arg = 'data';
 defaultArg = 'original';
-checkArg = @(x) any(validatestring(x,{'original','L1'})); % valid arguments for optional check
+checkArg = @(x) any(validatestring(x,{'original','L1', 'test'})); % valid arguments for optional check
 addOptional(p,arg,defaultArg,checkArg);
 
 % 'displayType' is an optional string indicating type of display: 'flat' (default), 'wedge' or 'projected'
@@ -164,6 +164,8 @@ switch p.Results.data
         M = fData.WC_PBS_SampleAmplitudes;
     case 'L1'
         M = fData.X_PBS_L1;
+    case 'test'
+        M= fData.X_PBS_TESTAMPFILT;
 end
 if ~isempty(p.Results.otherData)
     % overwrite with other data
