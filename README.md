@@ -9,7 +9,7 @@ Run these commands in Matlab from CoFFee's root folder to add CoFFees set of fun
 
 2.Add CoFFee's functions folder and its subfolders to the path:
 
-`addpath(genpath([cd '\functions\']))`
+`addpath(genpath([cd filesep 'functions' filesep]))`
 
 3.Check the contents of updated path:
 
@@ -23,5 +23,5 @@ NOTE: You can restore the default path prior to adding the functions:
 
 ```
 restoredefaultpath
-addpath(genpath([cd '\functions\']))
+addpath(genpath([cd filesep 'functions' filesep]))
 ```

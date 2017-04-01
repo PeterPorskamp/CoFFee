@@ -1,9 +1,9 @@
-function [fData] = CFF_filter_watercolumn(fData,varargin)
-% [fData] = CFF_filter_watercolumn(fData,varargin)
+function [fData] = CFF_filter_WC_sidelobe_artifact(fData,varargin)
+% [fData] = CFF_filter_WC_sidelobe_artifact(fData,varargin)
 %
 % DESCRIPTION
 %
-% General function to filter/remove data based on given parameters
+% Filter water column artifact 
 %
 % INPUT VARIABLES
 %
@@ -13,37 +13,9 @@ function [fData] = CFF_filter_watercolumn(fData,varargin)
 %   - 2: (default)
 %   - 3: de Moustier's 75th percentile
 %
-% - varargin{2} "method_bot": method for bottom filtering/processing
-%   - 0: None
-%   - 1: medfilt2 + inpaint_nans (default)
-%   - 2:
-%
-% - varargin{3} "remove_angle": steering angle beyond which outer beams are
-% removed (in deg ref nadir)
-%   - eg: 55 -> angles>55 and <-55 are removed
-%   - inf (default) -> all angles are conserved
-%
-% - varargin{4} "remove_closerange": range from sonar (in m) within which
-% samples are removed
-%   - eg: 4 -> all samples within 4m from sonar are removed
-%   - 0 (default) -> all samples are conserved
-%
-% - varargin{5} "remove_bottomrange": range from bottom (in m) beyond which
-% samples are removed. Range after bottom if positive, before bottom if
-% negative
-%   - eg: 2 -> all samples beyond 2m after bottom detect are removed
-%   - eg: -3 -> all samples beyond 3m BEFORE bottom detect are removed
-%   (therefore including bottom detect)
-%   - inf (default) -> all samples are conserved.
-%
-% - varargin{6} "mypolygon": horizontal polygon (in Easting,
-% northing coordinates) outside of which samples are removed.
-% negative
-%   - [] (default) -> all samples are conserved.
-%
 % OUTPUT VARIABLES
 %
-% fData
+% - fData
 %
 % RESEARCH NOTES
 %
@@ -85,8 +57,7 @@ function [fData] = CFF_filter_watercolumn(fData,varargin)
 %
 % NEW FEATURES
 %
-% - 2016-11-06: adding option to remove data outside of input polygon
-% - 2014-02-26: first version. Code adapted from old processing scripts
+% - 2016-11-07: First version. Code taken from CFF_filter_watercolumn.m
 %
 %%%
 % Alex Schimel, Deakin University
@@ -95,63 +66,29 @@ function [fData] = CFF_filter_watercolumn(fData,varargin)
 % random comment
 
 %% Extract needed data
-L0 = fData.WC_PBS_SampleAmplitudes./2;% original level divided by 2 (see kongsberg datagrams document)
-b0 = fData.WC_PB_DetectedRangeInSamples; % original bottom detect
+L0 = fData.WC_PBS_SampleAmplitudes./2; % original level divided by 2 (see kongsberg datagrams document)
+bottomSample = fData.X_PB_bottomSample; % original bottom detect
 nPings = size(L0,1);
 nBeams = size(L0,2);
 nSamples = size(L0,3);
-angles = fData.WC_PB_BeamPointingAngle;
-ranges = fData.X_PBS_sampleRange;
-P_oneSampleDistance = fData.X_P_oneSampleDistance;
-
 
 %% Set methods
 method_spec = 2; % default
-method_bot = 1; % default
-remove_angle = inf; % default
-remove_closerange = 0; % default
-remove_bottomrange = inf; % default
-mypolygon = []; % default
 if nargin==1
-    % fData only. keep defaults
+    % fData only. keep default
 elseif nargin==2
     method_spec = varargin{1};
-elseif nargin==3
-    method_spec = varargin{1};
-    method_bot = varargin{2};
-elseif nargin==4
-    method_spec = varargin{1};
-    method_bot = varargin{2};
-    remove_angle = varargin{3};
-elseif nargin==5
-    method_spec = varargin{1};
-    method_bot = varargin{2};
-    remove_angle = varargin{3};
-    remove_closerange = varargin{4};
-elseif nargin==6
-    method_spec = varargin{1};
-    method_bot = varargin{2};
-    remove_angle = varargin{3};
-    remove_closerange = varargin{4};
-    remove_bottomrange = varargin{5};
-elseif nargin==7
-    method_spec = varargin{1};
-    method_bot = varargin{2};
-    remove_angle = varargin{3};
-    remove_closerange = varargin{4};
-    remove_bottomrange = varargin{5};
-    mypolygon = varargin{6};
 else
     error('wrong number of input variables')
 end
 
 
-%% SPECULAR REFLECTION FILTERING:
+%% MAIN PROCESSING SWITCH
 switch method_spec
     
     case 0
         
-        % keep as L1
+        % No filtering. Keep original
         L1 = L0;
         
     case 1
@@ -205,7 +142,7 @@ switch method_spec
         for ip=1:nPings
             
             thisPing = L0(ip,:,:);
-            thisBottom = b0(ip,:);
+            thisBottom = bottomSample(ip,:);
             
             % mean level across all beams for each range (and each ping)
             [meanAcrossBeams,stdAcrossBeams] = CFF_nanstat3(thisPing,2);
@@ -251,7 +188,7 @@ switch method_spec
         for ip=1:nPings
             
             thisPing = L0(ip,:,:);
-            thisBottom = b0(ip,:);
+            thisBottom = bottomSample(ip,:);
             
             % calculate 75th percentile 
             clear sevenfiveperc
@@ -283,136 +220,12 @@ switch method_spec
 end
 
 
-
-%% BOTTOM DETECT FILTERING:
-switch method_bot
-    
-    case 0
-        
-        % keep as b1
-        b1 = b0;
-        
-    case 1
-        
-        % medfilt1 and inpaint_nan bottom
-        filtSize = 7; % filter width in beams
-        fS=ceil((filtSize-1)./2);
-        b0(b0==0) = NaN; % repace no detects by NaN
-        b1 = b0;
-        for ii=1:nPings
-            % for each ping
-            for jj = 1+fS:nBeams-fS
-                tmp = b0(ii,jj-fS:jj+fS);
-                tmp = tmp(~isnan(tmp(:)));
-                if ~isempty(tmp)
-                    b1(ii,jj) = median(tmp);
-                end
-            end
-        end
-        b1 = round(CFF_inpaint_nans(b1));
-        % because inpaint interpolation can yield numbers below zeros in
-        % areas where there are a lot of nans:
-        b1(b1<1)=2;
-        
-        %display
-%         figure;
-%         minb=min([b0(:);b1(:)]);
-%         maxb=max([b0(:);b1(:)]);
-%         subplot(221); imagesc(b0); colorbar; title('range of raw bottom'); caxis([minb maxb])
-%         subplot(222); imagesc(b1); colorbar; title('range of filtered bottom'); caxis([minb maxb])
-%         subplot(223); imagesc(b1-b0); colorbar; title('filtered-raw')
-        
-    case 2
-        
-    otherwise
-        error('method_bot not recognised')
-        
-end
-
-% saving
-fData.X_PB_b1 = b1;
-
-
-
-%% OUTER BEAMS REMOVAL
-
-if ~isinf(remove_angle)
-    
-    % build mask: 1: to conserve, 0: to remove
-    PB_Mask = double( angles >= -abs(remove_angle)*100  ...
-                    & angles <=  abs(remove_angle)*100      );
-    PBS_Mask = repmat(PB_Mask,[1 1 nSamples]);
-    PBS_Mask(PBS_Mask==0) = NaN;
-    
-    % apply mask
-    L1 = L1 .* PBS_Mask;
-    
-end
-
-
-
-%% CLOSE RANGE REMOVAL
-
-if remove_closerange>0
-    
-    % build mask: 1: to conserve, 0: to remove
-    PBS_Mask = double(ranges >= remove_closerange);
-    PBS_Mask(PBS_Mask==0) = NaN;
-    
-    % apply mask
-    L1 = L1 .* PBS_Mask;
-    
-end
-
-
-%% BOTTOM RANGE REMOVAL
-
-if ~isinf(remove_bottomrange)
-    
-    PB_oneSampleDistance = repmat(P_oneSampleDistance ,[1 nBeams]);
-    PB_bottomRange = b1 .* PB_oneSampleDistance;
-    PB_maxRange = PB_bottomRange + remove_bottomrange;
-    PB_maxSample = round(PB_maxRange ./ PB_oneSampleDistance);
-    PB_maxSample(PB_maxSample>nSamples)=nSamples;
-    
-    [X,Y] = meshgrid([1:nBeams],[1:nPings]');
-    maxSubs = [Y(:),X(:),PB_maxSample(:)];
-    
-    % build mask: 1: to conserve, 0: to remove
-    PBS_Mask = zeros(nPings,nBeams,nSamples);
-    for ii = 1:size(maxSubs,1)
-        PBS_Mask(maxSubs(ii,1),maxSubs(ii,2),1:maxSubs(ii,3)) = 1;
-    end
-    PBS_Mask(PBS_Mask==0) = NaN;
-    
-    % apply mask
-    L1 = L1 .* PBS_Mask;
-    
-end
-
-
-%% OUTSIDE POLYGON REMOVAL
-
-if ~isempty(mypolygon)
-    
-    % extract needed data
-    E = fData.X_PBS_sampleEasting;
-    N = fData.X_PBS_sampleNorthing;
-    
-    % build mask: 1: to conserve, 0: to remove
-    PBS_Mask = inpolygon(E,N,mypolygon(:,1),mypolygon(:,2));
-    PBS_Mask = double(PBS_Mask);
-    PBS_Mask(PBS_Mask==0) = NaN;
-
-    % apply mask
-    L1 = L1 .* PBS_Mask;
-    
-end
-
-%% SAVING L1
+%% SAVING RESULT IN FDATA
 fData.X_PBS_L1 = L1;
 
 
+
+%%
 % old code to adapt:
 %
 %

@@ -15,9 +15,9 @@ nSamples = size(fData.WC_PBS_SampleAmplitudes,3);
 
 switch method
     
-    %% METHOD #0: detect kelp on a ping basis... in development. left for now because not using the full 3D water column data...
-    case 0
-        
+    case 0    
+        % METHOD #0: detect kelp on a ping basis... in development. left for now because not using the full 3D water column data...
+    
         for ii = 1:nPings
             
             % get data
@@ -128,16 +128,12 @@ switch method
             
         end
         
-        %% METHOD #1: detect kelp on a per-slice basis.
+    
     case 1
+        % METHOD #1: detect kelp on a per-slice basis.
         
-        %%
-        %% PER-SLICE METHOD, STEP #0: SET PARAMETERS
-        %%
-        
-        
-        
-        
+        % STEP #0: SET PARAMETERS
+
         %         % all samples too close to sonar head, at outer beams, or under the
         %         % bottom were removed during filtering. Now complete by removing
         %         % samples outside the forest plant?
@@ -163,18 +159,19 @@ switch method
         
         % for now, stay with L1, ie all data
         
-        %%
-        %% PER-SLICE METHOD, STEP #1: GRID WATER COLUMN DATA
-        %%
+        
+        
+        % STEP #1: GRID WATER COLUMN DATA
+        % .. now done outside of this function. Just get them back here:
+        gridEasting = fData.X_1E_gridEasting;
+        gridNorthing = fData.X_N1_gridNorthing;
+        gridHeight = fData.X_H_gridHeight;
+        gridLevel = fData.X_NEH_gridLevel;
 
-      
+        
+        
+        % STEP #2: DETECT LOCAL MAXIMA ABOVE THRESHOLD ("men", after backgammon)
 
-        
-        
-        %%
-        %% PER-SLICE METHOD, STEP #2: DETECT LOCAL MAXIMA ABOVE THRESHOLD ("men", after backgammon)
-        %%
-        
         % define the threshold for detection
         
         

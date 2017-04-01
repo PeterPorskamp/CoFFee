@@ -46,9 +46,12 @@ function [h,F] = CFF_watercolumn_display(fData, varargin)
 %
 % NEW FEATURES
 %
-% 2015-09-29: updating description after changing varargin management to
+% - 2016-12-01: now grabbing 'X_PB_bottomSample' field for bottom in flat
+% display instead of original field, after changes on how bottom is
+% processed. Also, adding bottom detect display option to gridded data.
+% - 2015-09-29: updating description after changing varargin management to
 % inputparser
-% 2014-04-25: first version
+% - 2014-04-25: first version
 %
 % EXAMPLES
 %
@@ -151,7 +154,7 @@ parse(p,fData, varargin{:});
 ...
 
 %% initalize figure
-h = figure;
+h = gcf;
 
 % set figure to full screen if movie requested
 if ~isempty(p.Results.movieFile)
@@ -162,7 +165,7 @@ end
 %% grab data
 switch p.Results.data
     case 'original'
-        M = fData.WC_PBS_SampleAmplitudes;
+        M = fData.WC_PBS_SampleAmplitudes./2;% original level divided by 2 (see kongsberg datagrams document)
     case 'L1'
         M = fData.X_PBS_L1;
     case 'test'
@@ -184,20 +187,28 @@ fileName = [name ext];
 pingCounter = fData.WC_P1_PingCounter;
 nPings = size(fData.WC_PBS_SampleAmplitudes,1);
 
+%% pings to display
+if isnan(p.Results.pings)
+    dispPings = 1:nPings;
+else
+    dispPings = p.Results.pings;
+end 
 
 %% display data
 switch p.Results.displayType
     
     case 'flat'
         
-        % bottom detect
-        b = fData.WC_PB_DetectedRangeInSamples;
+        if strcmp(p.Results.bottomDetectDisplay,'yes')
+            % bottom detect
+            b = fData.X_PB_bottomSample;
+        end
         
         % data bounds
         maxM = max(max(max(M)));
         minM = min(min(min(M)));
         
-        for ii = 1:nPings
+        for ii = dispPings
             cla
             imagesc(squeeze(M(ii,:,:))')
             colorbar
@@ -229,19 +240,22 @@ switch p.Results.displayType
         X = fData.X_PBS_sampleAcrossDist;
         Y = fData.X_PBS_sampleUpDist;
         
-        % bottom detect
-        bX = fData.X_PB_bottomAcrossDist;
-        bY = fData.X_PB_bottomUpDist;
+        if strcmp(p.Results.bottomDetectDisplay,'yes')
+            % bottom detect
+            bX = fData.X_PB_bottomAcrossDist;
+            bY = fData.X_PB_bottomUpDist;
+        end
         
         % data bounds
-        maxX = max(max(max(X)));
-        minX = min(min(min(X)));
-        maxY = max(max(max(Y)));
-        minY = min(min(min(Y)));
-        maxM = max(max(max(M)));
-        minM = min(min(min(M)));
+        ind = ~isnan(M);
+        maxX = max(X(ind));
+        minX = min(X(ind));
+        maxY = max(Y(ind));
+        minY = min(Y(ind));
+        maxM = max(M(ind));
+        minM = min(M(ind));
         
-        for ii = 1:nPings
+        for ii = dispPings
             cla
             pcolor(squeeze(X(ii,:,:)),squeeze(Y(ii,:,:)),squeeze(M(ii,:,:)));
             colorbar
@@ -262,10 +276,11 @@ switch p.Results.displayType
                     plot(across,up,'ko')
                 end
             end
+            axis equal
+            axis tight
             axis([minX maxX minY maxY])
             caxis([minM maxM])
             grid on
-            axis equal
             title(sprintf('%s - ping %i (%i/%i)',fileName,pingCounter(ii),ii,nPings),'Interpreter','none')
             xlabel('across distance (starboard) (m)')
             ylabel('height above sonar (m)')
@@ -282,10 +297,12 @@ switch p.Results.displayType
         Northing = fData.X_PBS_sampleNorthing;
         Height = fData.X_PBS_sampleHeight;
         
-        % bottom detect
-        bEasting = fData.X_PB_bottomEasting;
-        bNorthing = fData.X_PB_bottomNorthing;
-        bHeight = fData.X_PB_bottomHeight;
+        if strcmp(p.Results.bottomDetectDisplay,'yes')
+            % bottom detect
+            bEasting = fData.X_PB_bottomEasting;
+            bNorthing = fData.X_PB_bottomNorthing;
+            bHeight = fData.X_PB_bottomHeight;
+        end
         
         % data bounds
         maxEasting = max(max(max(Easting)));
@@ -297,7 +314,7 @@ switch p.Results.displayType
         maxM = max(max(max(M)));
         minM = min(min(min(M)));
         
-        for ii = 1:nPings
+        for ii = dispPings
             cla
             x = reshape(Easting(ii,:,:),1,[]);
             y = reshape(Northing(ii,:,:),1,[]);
@@ -333,26 +350,43 @@ switch p.Results.displayType
         Easting = fData.X_1E_gridEasting;
         Northing = fData.X_N1_gridNorthing;
         Height = fData.X_H_gridHeight;
-
+        
+        if strcmp(p.Results.bottomDetectDisplay,'yes')
+            % bottom detect
+            bottom = fData.X_NE_gridBottom;
+        end
+        
         % data bounds
+        nE = length(Easting);
+        nN = length(Northing);
         maxEasting = max(Easting(:));
         minEasting = min(Easting(:));
         maxNorthing = max(Northing(:));
         minNorthing = min(Northing(:));
         maxHeight = max(Height(:));
         minHeight = min(Height(:));
-        maxM = max(M(:),[],'omitnan');
-        minM = min(M(:),[],'omitnan');
+        maxM = nanmax(M(:));
+        minM = nanmin(M(:));
         
-        figure
         for kk=1:length(Height)
             cla
-            pcolor(Easting,Northing,M(:,:,kk));
-            shading flat
-            axis square
+            h1 = imagesc(Easting,Northing,M(:,:,kk));
+            set(h1,'alphadata',~isnan(M(:,:,kk)));
+            
+            if strcmp(p.Results.bottomDetectDisplay,'yes')
+                % bottom display part
+                if kk<length(Height)
+                    ind = find( bottom>Height(kk) & bottom<Height(kk+1) );
+                    if ~isempty(ind)
+                        [iN,iE] = ind2sub([nN,nE],ind);
+                        hold on
+                        plot(Easting(iE),Northing(iN),'k*');
+                    end
+                end
+            end
+            
             axis equal
-            axis tight
-            grid on; set(gca,'layer','top');
+            grid on;
             set(gca,'Ydir','normal')
             caxis([minM maxM])
             colorbar

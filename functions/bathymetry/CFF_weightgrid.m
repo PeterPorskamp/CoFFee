@@ -26,12 +26,12 @@ function [vi,wi] = CFF_weightgrid(x,y,v,xi,yi,w)
 %
 % NEW FEATURES
 %
-% - v0.1:
-%   - first version.
+% - 2016-12-01: Adding the part where we remove all input data that are not
+% within the grid limits
+% - 2014-04-30: First version.
 %
 %%%
 % Alex Schimel, Deakin University
-% Version 0.1 (30-Apr-2014)
 %%%
 
 
@@ -59,6 +59,13 @@ w = reshape(w,1,[]);
 if length(w)==1
     w=ones(size(x));
 end
+
+% find x,y values that are outside the grid & remove them
+indout = x<xi_firstval | x>(xi_numel-1).*xi_step+xi_firstval | y<yi_firstval | y>(yi_numel-1).*yi_step+yi_firstval;
+x(indout)=[];
+y(indout)=[];
+v(indout)=[];
+w(indout)=[];
 
 % define a default NO_VALUE that allows progressive averaging (can't use
 % NaN). This value must be impossible to attain during the averaging. We'll
