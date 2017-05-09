@@ -3,7 +3,8 @@ function OUT = CFF_new_function(argRequired, varargin)
 %
 % DESCRIPTION
 %
-% This is a basic description of the function. DELETE THIS LINE IF UNUSED
+% This is a basic description of the function.
+% DELETE THIS LINE IF UNUSED
 %
 % USE
 %
