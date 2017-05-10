@@ -3,20 +3,19 @@ function OUT = CFF_new_function(argRequired, varargin)
 %
 % DESCRIPTION
 %
-% This is a basic description of the function.
-% DELETE THIS LINE IF UNUSED
+% This is a basic description of the function. DELETE THIS LINE IF UNUSED
 %
 % USE
 %
 % This is a bit more detailed description of how to use the function. DELETE THIS LINE IF UNUSED
 %
 % PROCESSING SUMMARY
-% 
+%
 % This is a summary of the steps in the processing. DELETE THIS LINE IF UNUSED
 %
 % REQUIRED INPUT ARGUMENTS
 %
-% - 'argRequired': description of the first required argument. If several, add after this line. 
+% - 'argRequired': description of the first required argument. If several, add after this line.
 %
 % OPTIONAL INPUT ARGUMENTS
 %
@@ -46,5 +45,3 @@ function OUT = CFF_new_function(argRequired, varargin)
 %%%
 % Alex Schimel, Deakin University. CHANGE AUTHOR IF NEEDED.
 %%%
-
-
