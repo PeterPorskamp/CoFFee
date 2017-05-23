@@ -1,27 +1,22 @@
 # CoFFee
-## Alex's Matlab tools for Multibeam Sonar data processing
+## Alex's Matlab toolbox for Multibeam Sonar data processing
 
-Run these commands in Matlab from CoFFee's root folder to add CoFFees set of functions to Matlab's path.
+To allow Matlab to find the data and functions composing this toolbox, you need to add the toolbox's folder and subfolders to Matlab's path.
 
-1.Check the contents of the current path:
+1. Ensure the current folder is this toolbox root folder (the one containing this README.md file).
 
-`path`
+2. Run the following command to save the path to the toolbox folder in a variable:
 
-2.Add CoFFee's functions folder and its subfolders to the path:
+`coffee_path = cd;`
 
-`addpath(genpath([cd filesep 'functions' filesep]))`
+3. Run the following command to add the toolbox folder and its subolders to Matlab's path:
 
-3.Check the contents of updated path:
+`addpath(genpath(coffee_path)`
 
-`path`
+The toolbox is now ready to use for the current MATLAB session.
 
-4.Save path for future Matlab sessions
+4. If you want to save this for all future MATLAB sessions, you can save the path by running the command:
 
-`savepath`
+`savepath;`
 
-NOTE: You can restore the default path prior to adding the functions:
-
-```
-restoredefaultpath
-addpath(genpath([cd filesep 'functions' filesep]))
-```
+NOTE: Doing so will alter your path for future sessions. The MATLAB commands `restoredefaultpath;` followed by `savepath;` can be used to restore MATLAB's default path although you will then lose any modifications made to the default path prior to adding the path to this toolbox.
