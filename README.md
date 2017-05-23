@@ -11,7 +11,7 @@ To allow Matlab to find the data and functions composing this toolbox, you need 
 
 3. Run the following command to add the toolbox folder and its subolders to Matlab's path:
 
-`addpath(genpath(coffee_path)`
+`addpath(genpath(coffee_path));`
 
 The toolbox is now ready to use for the current MATLAB session.
 
