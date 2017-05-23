@@ -1,5 +1,5 @@
 function [gridSlope, slopeCoef] = CFF_slope(X,Y,Z)
-
+% INCOMPLETE
 % make sure that what is exported is the slope vector coordinates in X and
 % Y
 
