@@ -225,7 +225,7 @@ switch p.Results.displayType
             end
             caxis([minM maxM])
             grid on
-            title(sprintf('%s - ping %i (%i/%i)',fileName,pingCounter(ii),ii,nPings),'Interpreter','none')
+            title(sprintf('File: %s. Ping %i/%i (#%i)',fileName,ii,nPings,pingCounter(ii)),'FontWeight','normal','Interpreter','none')
             xlabel('beam #')
             ylabel('sample #')
             drawnow
@@ -281,7 +281,7 @@ switch p.Results.displayType
             axis([minX maxX minY maxY])
             caxis([minM maxM])
             grid on
-            title(sprintf('%s - ping %i (%i/%i)',fileName,pingCounter(ii),ii,nPings),'Interpreter','none')
+            title(sprintf('File: %s. Ping %i/%i (#%i)',fileName,ii,nPings,pingCounter(ii)),'FontWeight','normal','Interpreter','none')
             xlabel('across distance (starboard) (m)')
             ylabel('height above sonar (m)')
             drawnow
@@ -333,7 +333,7 @@ switch p.Results.displayType
             axis([minEasting maxEasting minNorthing maxNorthing minHeight maxHeight])
             caxis([minM maxM])
             grid on
-            title(sprintf('%s - ping %i (%i/%i)',fileName,pingCounter(ii),ii,nPings),'Interpreter','none')
+            title(sprintf('File: %s. Ping %i/%i (#%i)',fileName,ii,nPings,pingCounter(ii)),'FontWeight','normal','Interpreter','none')
             xlabel('Easting (m)')
             ylabel('Northing (m)')
             zlabel('Height above datum (m)')
@@ -391,7 +391,7 @@ switch p.Results.displayType
             caxis([minM maxM])
             colorbar
             CFF_nice_easting_northing
-            title(sprintf('%s - slice %i/%i - Height above datum: %.2f m',fileName,kk,length(Height),Height(kk)),'Interpreter','none')
+            title(sprintf('File: %s. Slice %i/%i - Height above datum: %.2f m',fileName,kk,length(Height),Height(kk)),'FontWeight','normal','Interpreter','none')
             xlabel('Easting (m)')
             ylabel('Northing (m)')
             drawnow

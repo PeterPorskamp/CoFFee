@@ -78,7 +78,7 @@ addOptional(p,'interpolate',default_interpolate,validate_interpolate);
 %   type, char, valid entries 'all' or 'median'
 %   variable, char, valid entries 'slope', 'eucliDist' or 'vertDist'
 %   threshold, num
-validate_flagParams = @(x) validateattributes(x,{'struct'});
+validate_flagParams = @(x) isstruct(x);
 default_flagParams = struct('type','all','variable','vertDist','threshold',1);
 addOptional(p,'flagParams',default_flagParams,validate_flagParams);
 
@@ -109,8 +109,9 @@ switch p.Results.method
     case 'filter'
         
         if isinf(p.Results.maxHorizDist)
-            tic
+            
             % filter method, no limit on horiz distance
+            tic
             for pp = 1:nPings
                 for bb = 1:nBeams
                     % find the subset of all bottom detects within set interval in pings and beams
@@ -125,7 +126,9 @@ switch p.Results.method
                 end
             end
             toc
+            
         else
+            
             % filter method, with limit on horiz distance
             for pp = 1:nPings
                 for bb = 1:nBeams
@@ -147,19 +150,23 @@ switch p.Results.method
                     b1(pp,bb) = median(subBottom(:),'omitnan');
                 end
             end
+            
         end
         
     case 'flag'
         
         % get flagging type first
-        switch p.results.flagParams.type
+        switch p.Results.flagParams.type
             case 'all'
-                f = @(x)min(x); % comparing min value to threhsold is equivalent to comparing all values to threshold.
+                f = @(x)all(x);
             case 'median'
                 f = @(x)median(x);
+            case 'any'
+                f = @(x)any(x);
             otherwise
                 error('flagParams.type not recognized')
         end
+        
         % next, processing for each bottom detect (BT)
         for pp = 1:nPings
             for bb = 1:nBeams
@@ -198,8 +205,8 @@ switch p.Results.method
                 end
                 % compute vertical distance in m
                 subVertDist = subHeight-bH(pp,bb);
-                % now switch on the falgging variable
-                switch p.results.flagParams.variable
+                % now switch on the flagging variable
+                switch p.Results.flagParams.variable
                     case 'vert'
                         v = subVertDist(:);
                     case 'eucl'
@@ -214,7 +221,7 @@ switch p.Results.method
                         error('flagParams.variable not recognized')
                 end
                 % finally, apply flagging decision
-                if f(abs(v)) > p.results.flagParams.threshold
+                if f(abs(v)) > p.Results.flagParams.threshold
                     b1(pp,bb) = NaN;
                 end
             end
