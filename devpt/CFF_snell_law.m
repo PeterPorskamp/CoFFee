@@ -1,4 +1,4 @@
-function [endAngle] = CFF_snell_law(c1,c2,startAngle)
+function [end_angle] = CFF_snell_law(start_velocity,end_velocity,start_angle)
 %% CFF_snell_law
 %
 % Application of Snell-Descartes law to determine angle after refraction.
@@ -7,20 +7,20 @@ function [endAngle] = CFF_snell_law(c1,c2,startAngle)
 %
 % *USE*
 %
-% Supposing two vertical strata of velocity c1 (top) and c2 (bottom), and
-% an incident angle in the top strata of angle 'startAngle' in degrees and
-% refered to the vertical plane (aka a vertical ray has startAngle = 90),
+% Supposing two vertical strata of velocity start_velocity (top) and end_velocity (bottom), and
+% an incident angle in the top strata of angle 'start_angle' in degrees and
+% refered to the vertical plane (aka a vertical ray has start_angle = 90),
 % this functions computes 
 %
 % *INPUT VARIABLES*
 %
-% * |c1|: TODO: write description and info on variable
-% * |c2|: TODO: write description and info on variable
-% * |startAngle|: TODO: write description and info on variable
+% * |start_velocity|: TODO: write description and info on variable
+% * |end_velocity|: TODO: write description and info on variable
+% * |start_angle|: TODO: write description and info on variable
 %
 % *OUTPUT VARIABLES*
 %
-% * |endAngle|: TODO: write description and info on variable
+% * |end_angle|: TODO: write description and info on variable
 %
 % *RESEARCH NOTES*
 %
@@ -38,9 +38,9 @@ function [endAngle] = CFF_snell_law(c1,c2,startAngle)
 %
 % Alexandre Schimel, NIWA.
 
-if startAngle <= acosd(c1./c2)
+if start_angle <= acosd(start_velocity./end_velocity)
     warning('Total reflection. No refraction')
-    endAngle = 0;
+    end_angle = 0;
 else
-    endAngle = acosd( cosd(startAngle).*c2./c1 );
+    end_angle = acosd( cosd(start_angle).*end_velocity./start_velocity );
 end

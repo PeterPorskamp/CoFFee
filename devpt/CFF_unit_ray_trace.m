@@ -1,4 +1,4 @@
-function [range, time, depth, hzdist] = CFF_unit_ray_trace(velocity,angle,mode,value)
+function [range, time, vtdist, hzdist] = CFF_unit_ray_trace(velocity,angle,limit_variable,limit_value)
 %% CFF_unit_ray_trace
 %
 % Ray-tracing in a single stratum with sound velocity 'velocity' and start
@@ -8,9 +8,11 @@ function [range, time, depth, hzdist] = CFF_unit_ray_trace(velocity,angle,mode,v
 %
 % *USE*
 %
-% The pair mode/value gives control over the limiting factor: either the
-% thickness of the stratum ('depth'), the total ray range ('range') or
-% the total ray time ('time')
+% The pair (limit_variable,limit_value) allows control over the limiting
+% factor: either the total ray range ('range'), the total ray time
+% ('time'), the thickness of the stratum or the desired vertical
+% propagation distance ('vtdist') or the desired horizontal propagation
+% distance ('hzdist').
 %
 % *INPUT VARIABLES*
 %
@@ -36,31 +38,31 @@ function [range, time, depth, hzdist] = CFF_unit_ray_trace(velocity,angle,mode,v
 %
 % Alexandre Schimel, NIWA.
 
-switch mode
+switch limit_variable
     case 'range'
-        % value is total range
-        range  = value;
-        depth  = range.*sind(angle);
+        % limit_value is total range
+        range  = limit_value;
+        vtdist  = range.*sind(angle);
         hzdist = range.*cosd(angle);
         time   = range./velocity;
     case 'time'
-        % value is total time
-        time  = value;
+        % limit_value is total time
+        time  = limit_value;
         range = time.*velocity;
-        depth  = range.*sind(angle);
+        vtdist  = range.*sind(angle);
         hzdist = range.*cosd(angle);
-    case 'depth'
-        % value is total depth
-        depth  = value;
-        range  = depth./sind(angle);
+    case 'vtdist'
+        % limit_value is total vtdist
+        vtdist  = limit_value;
+        range  = vtdist./sind(angle);
         hzdist = range.*cosd(angle);
         time   = range./velocity;
     case 'hzdist'
-        % value is horizontal distance
-        hzdist = value;
+        % limit_value is horizontal distance
+        hzdist = limit_value;
         range  = hzdist./cosd(angle);
-        depth  = range.*sind(angle);
+        vtdist  = range.*sind(angle);
         time   = range./velocity;
     otherwise
-        error('invalid mode. Mode should be ''range'', ''time'', ''depth'', or ''hzdist''')
+        error('invalid limit_variable. Mode should be ''range'', ''time'', ''vtdist'', or ''hzdist''')
 end
