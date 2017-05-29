@@ -48,25 +48,18 @@ value = 1000;
 [range, time, depth, hzdist] = CFF_unit_ray_trace(velocity,angle,mode,value)
 
 
+% see ray_trace
+...
+    
+% need a clean_up_SVP function
 
-
-
-
-
-
-
-
-
-
+% finally: 
 CFF_compute_raybend_tables
 %input: SVP, sonar depth, start angle, 
 %output: end angle at seafloor
 
-% different modes of operation:
-% * if given an horizontal depth in input, calculate total vertial distance
-% traveled and range (and final angle)
-% * if given a total range in input, calculate vertical distance and depth
-% (and final angle)
+% for any SVP, compute 3D arrays for time/range/depth/
+
 
 CFF_time_to_slantrange
 % samples are recorded in time. R = ct/2 but c changes with depth so in
