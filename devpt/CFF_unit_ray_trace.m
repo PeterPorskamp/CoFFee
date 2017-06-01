@@ -9,18 +9,25 @@ function [range, time, vtdist, hzdist] = CFF_unit_ray_trace(velocity,angle,limit
 % *USE*
 %
 % The pair (limit_variable,limit_value) allows control over the limiting
-% factor: either the total ray range ('range'), the total ray time
-% ('time'), the thickness of the stratum or the desired vertical
-% propagation distance ('vtdist') or the desired horizontal propagation
-% distance ('hzdist').
+% factor, either:
+% * The total ray range ('range') with value in m,
+% * The total ray time ('time') with value in seconds,
+% * The desired vertical propagation distance ('vtdist') with value in m,
+% * The desired horizontal propagation distance ('hzdist') with value in m.
 %
 % *INPUT VARIABLES*
 %
-% * |input_variable_1|: TODO: write description and info on variable
+% * |velocity|: TODO: write description and info on variable
+% * |angle|: TODO: write description and info on variable
+% * |limit_variable|: TODO: write description and info on variable
+% * |limit_value|: TODO: write description and info on variable
 %
 % *OUTPUT VARIABLES*
 %
-% * |output_variable_1|: TODO: write description and info on variable
+% * |range|: TODO: write description and info on variable
+% * |time|: TODO: write description and info on variable
+% * |vtdist|: TODO: write description and info on variable
+% * |hzdist|: TODO: write description and info on variable
 %
 % *RESEARCH NOTES*
 %
@@ -28,11 +35,15 @@ function [range, time, vtdist, hzdist] = CFF_unit_ray_trace(velocity,angle,limit
 %
 % *NEW FEATURES*
 %
-% * YYYY-MM-DD: first version (Author). TODO: complete date and comment
+% * 2017-06-01: first version (Alex Schimel)
 %
 % *EXAMPLE*
 %
-% TODO: write examples
+% velocity = 1500;
+% angle = 45;
+% limit_variable = 'hzdist';
+% limit_value = 1000;
+% [range, time, vtdist, hzdist] = CFF_unit_ray_trace(velocity,angle,limit_variable,limit_value)
 %
 % *AUTHOR, AFFILIATION & COPYRIGHT*
 %

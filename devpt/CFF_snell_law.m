@@ -7,10 +7,13 @@ function [end_angle] = CFF_snell_law(start_velocity,end_velocity,start_angle)
 %
 % *USE*
 %
-% Supposing two vertical strata of velocity start_velocity (top) and end_velocity (bottom), and
-% an incident angle in the top strata of angle 'start_angle' in degrees and
-% refered to the vertical plane (aka a vertical ray has start_angle = 90),
-% this functions computes 
+% Supposing two vertical strata of velocity start_velocity (top) and
+% end_velocity (bottom), and an incident angle in the top strata of angle
+% 'start_angle' in degrees refered to the horizontal plane (aka a an
+% incident ray that is vertical would have start_angle = 90), this
+% functions computes the angle in the bottom strata after refraction.
+%
+% Note, if total reflection occurs, output end_angle is zero.
 %
 % *INPUT VARIABLES*
 %
@@ -28,11 +31,14 @@ function [end_angle] = CFF_snell_law(start_velocity,end_velocity,start_angle)
 %
 % *NEW FEATURES*
 %
-% * YYYY-MM-DD: first version (Author). TODO: complete date and comment
+% * 2017-06-01: first version (Alex Schimel)
 %
 % *EXAMPLE*
 %
-% TODO: write examples
+% c1 = 1500;
+% c2 = 1600;
+% startAngle = 70; 
+% endAngle = CFF_snell_law(c1,c2,startAngle)
 %
 % *AUTHOR, AFFILIATION & COPYRIGHT*
 %

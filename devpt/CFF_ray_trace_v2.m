@@ -56,20 +56,19 @@ function [end_range, end_time, end_vtdist, end_hzdist, end_angle, end_depth] = C
 % *EXAMPLE*
 %
 % depth_profile = [0,[1:1:50],inf];
-% velocity_profile = linspace(1500,2000,51);
+% velocity_profile = linspace(1500,2700,51);
 % start_depth = 2;
 % start_angle = 45;
 % limit_variable = 'range';
 % limit_value = 100;
 % display_flag = 1;
 % [end_range, end_time, end_vtdist, end_hzdist, end_angle, end_depth] = CFF_ray_trace(depth_profile,velocity_profile,start_depth,start_angle,limit_variable,limit_value, display_flag)
-% 
+%
 % *AUTHOR, AFFILIATION & COPYRIGHT*
 %
 % Alexandre Schimel, NIWA.
 
 % Initialize cumulative calculations:
-
 cumulative_range = 0;
 cumulative_time = 0;
 cumulative_vtdist = 0;
@@ -130,7 +129,7 @@ while ~flag
         
         % plot
         if display_flag
-            plot([cumulative_hzdist, cumulative_hzdist+this_hzdist], -start_depth - [cumulative_vtdist,cumulative_vtdist+this_vtdist],'b-');
+            plot([cumulative_hzdist, cumulative_hzdist+this_hzdist], -start_depth - [cumulative_vtdist,cumulative_vtdist+this_vtdist],'b.-');
         end
         
         % add the results for that stratum to total
@@ -155,7 +154,7 @@ while ~flag
         
         % plot
         if display_flag
-            plot([cumulative_hzdist, cumulative_hzdist+this_hzdist], -start_depth - [cumulative_vtdist,cumulative_vtdist+this_vtdist],'b-');
+            plot([cumulative_hzdist, cumulative_hzdist+this_hzdist], -start_depth - [cumulative_vtdist,cumulative_vtdist+this_vtdist],'b.-');
         end
         
         % add this partial stratum results to total before exiting the loop
@@ -189,9 +188,9 @@ if display_flag
     y = [-depth_profile(1:end-1); -[depth_profile(2:end-1),end_depth]; -[depth_profile(2:end-1),end_depth]; -depth_profile(1:end-1)];
     h = patch(x,y,velocity_profile,'EdgeColor','none','FaceAlpha',0.3);
     uistack(h,'bottom') ;
-    h2 = colorbar;
+    colorbar
     colormap gray
-
+    
     % and then the details
     title('ray tracing')
     xlabel('vertical distance (m)')
