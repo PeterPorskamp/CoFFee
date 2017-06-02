@@ -5,17 +5,13 @@ To allow Matlab to find the data and functions composing this toolbox, you need 
 
 1. Ensure the current folder is this toolbox root folder (the one containing this README.md file).
 
-2. Run the following command to save the path to the toolbox folder in a variable:
+2. Run the following command to add the toolbox folder and its subolders to Matlab's path:
 
-`coffee_path = cd;`
-
-3. Run the following command to add the toolbox folder and its subolders to Matlab's path:
-
-`addpath(genpath(coffee_path));`
+`addpath(genpath(cd));`
 
 The toolbox is now ready to use for the current MATLAB session.
 
-4. If you want to save this for all future MATLAB sessions, you can save the path by running the command:
+3. If you want to save this for all future MATLAB sessions, you can save the path by running the command:
 
 `savepath;`
 

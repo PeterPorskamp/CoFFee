@@ -1,40 +1,35 @@
-% INCOMPLETE
 
-%% 
+%% basics
 
-CFF_seafloor_slopes
-% DESCRIPTION: estimate seafloor slope for each sounding
-% INPUT: accept either bathy profile (vector) or stacks of profiles (array)
-% OUTPUT: 
-% if bathy profile, produce along track slope (approx 1)
-% if PB stack, produce along track and across track slopes. (approx 2).
-% Also output maximum slope when we have 2D?
+%% convert one or several raw Kongsberg files to mat, conserving formatting
 
-% 2D should work in Northing/Easting too. (approx 3)
+%% extract desired data from one or several mat files
 
-%% 
-% given for each ping the pointing angle (roll, pitch) of
-% the sonar, and the transmit steer angle, and for each beam the receive
-% angle, I should be able to compute the actual depression (down) and
-% azimuth angles (ref to north) for each beam.
+%% extrapolate all nav and attitude data to ping time
+% Roll; Pitch; Heave; Heading; Height; Latitude; Longitude; Speed;
+   
+%% get easting & northing from lat long. Also correct heading for grid convergence
 
-% the depression angle gives the start angle for ray bending.
+%% translate ENH position to sonar acoustic center, for each ping
+% using lever arm?
 
+%% translate attitude angles (pitch, roll, heading) to sonar head, for ping time
+% using sonar setup angles?
+
+%% compute depression (down) and azimuth (ref to north) of sonar acoustic axis at each ping
+% from pitch, roll, heading 
+
+%% compute depression/azimuth of each beam (start angle)
+% given that of sonar and transmit steer angle for each ping + receive steer
+% angle for each beam
+
+%% ray bend each beam to get slant range, vertical distance (down), hz dist, and angle for each sample
 % given a SVP, the sonar depth for each ping and the start angle for each
-% beam, I should be able to do ray bending and figure, for each sample in
-% the beam its slant range, vertical distance (down) and horizontal
-% distance from the sonar head, depth, as well as end angle
+% beam
 
+%% compute the XYZ location of each sample in a geo frame.
 % from the depth and horizontal distance for each sample, as well as the
-% azimuth angle for each beam, and the XYZ location of the sonar, I can
-% compute the XYZ location of each sample in a geo frame.
-
-% 
-
-
-CFF_beam_angle
-
-% Estimate shoot angle from transmit and receive steering. And roll and pitch
+% azimuth angle for each beam, and the XYZ location of the sonar
 
 
 % beamwidth in axis, non-steered
@@ -71,6 +66,17 @@ Rx_steer_angle
 % it would perhaps need a function that compute the max start_depth,
 % start_angle and time in a give dataset, in order to generate tables valid
 % for an entire dataset.
+
+CFF_seafloor_slopes
+% DESCRIPTION: estimate seafloor slope for each sounding
+% INPUT: accept either bathy profile (vector) or stacks of profiles (array)
+% OUTPUT: 
+% if bathy profile, produce along track slope (approx 1)
+% if PB stack, produce along track and across track slopes. (approx 2).
+% Also output maximum slope when we have 2D?
+
+% 2D should work in Northing/Easting too. (approx 3)
+
 
 
 %% INCIDENT ANGLE
