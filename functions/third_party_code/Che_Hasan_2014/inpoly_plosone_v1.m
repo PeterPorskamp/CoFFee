@@ -118,7 +118,7 @@ u4 = uicontrol('Style','Radiobutton','String','Kurtosis',...
 
 
 
-
+%%
     function pb_run_inpoly_callback(hObject,eventdata)
         
         % read ESRI shapefile - polygons (e.g. constructed from automatic  spatial
@@ -134,7 +134,7 @@ u4 = uicontrol('Style','Radiobutton','String','Kurtosis',...
         
         cd(PathName);
         
-        [pathstr, name, ext] = fileparts(FileName);
+        [~,name,~] = fileparts(FileName);
         
         if license('test','map_toolbox')
             
@@ -142,8 +142,8 @@ u4 = uicontrol('Style','Radiobutton','String','Kurtosis',...
             
             P = shaperead(name);
             c = length(P); % number of polygons
-            xpoly = cell(c,1); % preallocating 
-            ypoly = cell(c,1); % preallocating 
+            xpoly = cell(c,1); % preallocating
+            ypoly = cell(c,1); % preallocating
             for ii= 1:c
                 xpoly{ii,1} = P(ii).X;
                 ypoly{ii,1} = P(ii).Y;
@@ -151,7 +151,7 @@ u4 = uicontrol('Style','Radiobutton','String','Kurtosis',...
             
         else
             
-            %%% ORIGINAL CODE BY ROZAIMI 
+            %%% ORIGINAL CODE BY ROZAIMI
             % use the function shape_read to read ESRI shapefile
             p=shape_read(name);
             
@@ -168,9 +168,6 @@ u4 = uicontrol('Style','Radiobutton','String','Kurtosis',...
             
             % get cumulative sum of the number of vertices
             csum_nv=cumsum(n_vert);
-            
-            % for loop purpose, each csum need to be added by 1
-            csum_nv1=csum_nv+1;
             
             % create new cell for x and y coordinates
             xpoly=[];
@@ -190,7 +187,7 @@ u4 = uicontrol('Style','Radiobutton','String','Kurtosis',...
                 xpoly{i,1}=xcoor(csum_nv(i-1)+1:csum_nv(i),1);
                 ypoly{i,1}=ycoor(csum_nv(i-1)+1:csum_nv(i),1);
             end
-
+            
         end
         
         % open and search for proc files
@@ -208,8 +205,7 @@ u4 = uicontrol('Style','Radiobutton','String','Kurtosis',...
         % only scan for files that have the word 'Proc' (proc files)
         cd(dirname);
         f=dir('*Proc*');
-        [r_f,c_f]=size(f);
-        
+        [r_f,~]=size(f);
         
         h = waitbar(0,'Please wait...');
         
@@ -233,14 +229,13 @@ u4 = uicontrol('Style','Radiobutton','String','Kurtosis',...
             varxy.SSCE=single(varxy.SSCE);
             varxy.SSCE=reshape(varxy.SSCE,[],1);
             
-            
             % second/inside loop is to test if the X,Y data are located inside each
             % polygon using the matlab built-in function 'inpolygon'
             
             for j=1:c
                 in= inpolygon(varxy.X,varxy.Y,xpoly{j,1},ypoly{j,1}); % Test if data is inside a polygon!!
                 %in= inpoly([varxy.X varxy.Y],[xpoly{j,1} ypoly{j,1}]);
-                [r_in,c_in]=find(in==1); % find the index that fell inside
+                [r_in,~]=find(in==1); % find the index that fell inside
                 index_poly{j}=r_in;
                 angle{j}=varxy.ThetaCor(r_in,1); % get the angle listed by the index
                 dB{j}=varxy.SSCE(r_in,1); % get the intensity listed by the index
@@ -248,7 +243,7 @@ u4 = uicontrol('Style','Radiobutton','String','Kurtosis',...
             end
             
             % generate a filename for the inpoly file and save it
-            [r_name,c_name]=size(f(i,1).name);
+            [~,c_name]=size(f(i,1).name);
             
             out_name=['inpoly_' f(i,1).name(:,11:c_name)];
             save(out_name,'index_poly','angle','dB');
@@ -256,22 +251,18 @@ u4 = uicontrol('Style','Radiobutton','String','Kurtosis',...
         end
         close(h);
         
-        
         if dirname~=0
             msgbox('Finished inpoly!','Point in polygon','Modal');
         end
         
     end
 
-
-
-    function pb_combine_callback(hObject,eventdata) % function to combine all inpoly files into one
+%% function to combine all inpoly files into one
+    function pb_combine_callback(hObject,eventdata)
         
         %search inpoly file
-        
-        dirname=pwd;
+        dirname = pwd;
         dirname = uigetdir(dirname,'Select Inpoly file directory');
-        
         
         if isequal(dirname,0)
             msgbox('Please try again!','Error!','Modal');
@@ -281,7 +272,7 @@ u4 = uicontrol('Style','Radiobutton','String','Kurtosis',...
         
         cd(dirname);
         f=dir('*inpoly*');
-        [r_f,c_f]=size(f);
+        [r_f,~]=size(f);
         
         s=whos('-file',f(1,1).name);
         c_poly=s(1,1).size(1,2);
@@ -316,11 +307,8 @@ u4 = uicontrol('Style','Radiobutton','String','Kurtosis',...
         
     end % end combine inpoly function
 
-
+%% load combined_poly file and compute AR for each polygon
     function pb_compAR_callback(hObject,evendata)
-        
-        %load combined_poly file and compute AR for each polygon
-        
         
         [FileName,PathName] = uigetfile('*.mat','Select combined poly file');
         
@@ -332,29 +320,30 @@ u4 = uicontrol('Style','Radiobutton','String','Kurtosis',...
         
         cd(PathName);
         
-        [pathstr, name, ext] = fileparts(FileName);
-        
+        [~,name,~] = fileparts(FileName);
         
         %load file
-        
         load(name);
         
-        [r,c]=size(combined_angle);
+        [r,~]=size(combined_angle);
         
         h = waitbar(0,'Please wait...');
+        
         for i=1:r
             waitbar(0,h, ['Processing polygon ' num2str(i) ' from ' num2str(r) '...Please wait...']);
             combined_angle{i,1}=combined_angle{i,1}+1;
             min_angle=min(combined_angle{i,1});
             max_angle=max(combined_angle{i,1});
-            
-            for j=1:max_angle
-                
-                [a,b]=find(combined_angle{i,1}==j);
-                meandB(j)=mean(combined_dB{i,1}(a,:));
-                waitbar(j/double(max_angle),h)
+            if ~isempty(max_angle)
+                for j=1:max_angle
+                    [a,~]=find(combined_angle{i,1}==j);
+                    meandB(j)=mean(combined_dB{i,1}(a,:));
+                    waitbar(j/double(max_angle),h)
+                end
+                AR{i,1}=meandB;
+            else
+                AR{i,1}=[];
             end
-            AR{i,1}=meandB;
         end
         
         clearvars combined_angle combined_dB
@@ -373,9 +362,9 @@ u4 = uicontrol('Style','Radiobutton','String','Kurtosis',...
             msgbox('Finished compute Angular Response!','Create AR','Modal');
         end
         
-        
     end
 
+%%
     function pb_compDer_callback(hObject,evendata) % function to compute AR derivatives
         
         %get the current directory
@@ -411,9 +400,6 @@ u4 = uicontrol('Style','Radiobutton','String','Kurtosis',...
         
         data=load(full_pathAR);
         
-        
-        
-        
         % enter angular domain (start and end angles)
         
         prompt = {'From incidence angle:','To incidence angle:'};
@@ -428,10 +414,12 @@ u4 = uicontrol('Style','Radiobutton','String','Kurtosis',...
         % compute derivative according to user's selection and export to ascii
         % file
         switch get(get(g,'SelectedObject'),'Tag')
-            case 'Mean',
+            
+            case 'Mean'
+                
                 meanAR=nanmean(data.ARmat(:,a1:a2),2);
                 xypoly=[centroid.data(:,2:5) meanAR];
-                [r c]=size(xypoly);
+                [r,~]=size(xypoly);
                 outfile=['mean' num2str(a1-1) 'to' num2str(a2-1) name1 '.txt'];
                 a=fopen(outfile,'w+');
                 fprintf(a,'ID,Gridcode,X,Y,mean\n');
@@ -443,7 +431,8 @@ u4 = uicontrol('Style','Radiobutton','String','Kurtosis',...
                 fclose(a);
                 msgbox('Finished exporting mean to ASCII file!','Mean','Modal');
                 
-            case 'Slope',
+            case 'Slope'
+                
                 x=a1-1:a2-1;
                 n=length(data.ARmat);
                 for i=1:n
@@ -451,7 +440,7 @@ u4 = uicontrol('Style','Radiobutton','String','Kurtosis',...
                 end
                 slopeAR=p(:,1);
                 xypoly=[centroid.data(:,2:5) slopeAR];
-                [r c]=size(xypoly);
+                [r,~]=size(xypoly);
                 outfile=['slope' num2str(a1-1) 'to' num2str(a2-1) name1 '.txt'];
                 a=fopen(outfile,'w+');
                 fprintf(a,'ID,Gridcode,X,Y,slope\n');
@@ -462,10 +451,12 @@ u4 = uicontrol('Style','Radiobutton','String','Kurtosis',...
                 
                 fclose(a);
                 msgbox('Finished exporting slope to ASCII file!','Slope','Modal');
-            case 'Skewness',
+                
+            case 'Skewness'
+                
                 skewAR=skewness(data.ARmat(:,a1:a2),0,2);
                 xypoly=[centroid.data(:,2:5) skewAR];
-                [r c]=size(xypoly);
+                [r,~]=size(xypoly);
                 outfile=['skew' num2str(a1-1) 'to' num2str(a2-1) name1 '.txt'];
                 a=fopen(outfile,'w+');
                 fprintf(a,'ID,Gridcode,X,Y,skewness\n');
@@ -476,10 +467,12 @@ u4 = uicontrol('Style','Radiobutton','String','Kurtosis',...
                 
                 fclose(a);
                 msgbox('Finished exporting skewness to ASCII file!','Skewness','Modal');
-            case 'Kurtosis',
+                
+            case 'Kurtosis'
+                
                 kurAR=kurtosis(data.ARmat(:,a1:a2),0,2);
                 xypoly=[centroid.data(:,2:5) kurAR];
-                [r c]=size(xypoly);
+                [r,~]=size(xypoly);
                 outfile=['kur' num2str(a1-1) 'to' num2str(a2-1) name1 '.txt'];
                 a=fopen(outfile,'w+');
                 fprintf(a,'ID,Gridcode,X,Y,kurtosis\n');
@@ -490,10 +483,9 @@ u4 = uicontrol('Style','Radiobutton','String','Kurtosis',...
                 
                 fclose(a);
                 msgbox('Finished exporting kurtosis to ASCII file!','Kurtosis','Modal');
+                
         end
-        
-        
-        
+
     end
 
 end
